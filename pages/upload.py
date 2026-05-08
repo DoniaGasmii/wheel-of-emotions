@@ -30,7 +30,7 @@ def show():
     st.caption("Upload a photo of the emotion wheel — AI will detect the dots for you.")
 
     if "api_key" not in st.session_state or not st.session_state["api_key"]:
-        st.warning("Please enter your Google Gemini API key in the sidebar to get started.")
+        st.warning("Please enter your HF API key in the sidebar to get started.")
         return
 
     st.divider()

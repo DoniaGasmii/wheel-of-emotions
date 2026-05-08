@@ -1,9 +1,13 @@
 import json
 import re
 import base64
+import os
 from pathlib import Path
-from huggingface_hub import InferenceClient
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
+load_dotenv()
 
 PROMPT = """You are an expert at reading emotion wheel images.
 You will be given a photo of a circular emotion wheel with small black dot stickers placed on it by participants.
@@ -35,34 +39,28 @@ Rules:
 - total_dots must equal the sum of all counts
 - Return ONLY the JSON object, nothing else"""
 
-MODEL = "Qwen/Qwen2-VL-7B-Instruct"
+MODEL = "gemini-2.0-flash"
 
 
-def extract_emotions(image_bytes: bytes, api_key: str, date_str: str) -> dict:
-    client = InferenceClient(
-        provider="hf-inference",
-        api_key=api_key,
-    )
+def get_api_key() -> str:
+    key = os.getenv("GEMINI_API_KEY")
+    if not key:
+        raise ValueError("GEMINI_API_KEY not found — make sure it's set in your .env file")
+    return key
 
-    # Encode image to base64 data URL
-    b64 = base64.b64encode(image_bytes).decode("utf-8")
-    image_url = f"data:image/png;base64,{b64}"
 
-    response = client.chat.completions.create(
+def extract_emotions(image_bytes: bytes, date_str: str) -> dict:
+    client = genai.Client(api_key=get_api_key())
+
+    response = client.models.generate_content(
         model=MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": {"url": image_url}},
-                    {"type": "text", "text": PROMPT},
-                ],
-            }
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
+            PROMPT,
         ],
-        max_tokens=1024,
     )
 
-    raw = response.choices[0].message.content.strip()
+    raw = response.text.strip()
     raw = re.sub(r"```json|```", "", raw).strip()
     result = json.loads(raw)
     result["date"] = date_str

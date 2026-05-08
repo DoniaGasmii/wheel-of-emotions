@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.vision import get_api_key
 
 st.set_page_config(
     page_title="feelmap",
@@ -16,16 +17,15 @@ page = st.sidebar.radio(
     label_visibility="collapsed"
 )
 
-st.sidebar.divider()
-api_key = st.sidebar.text_input(
-    "HuggingFace API token",
-    type="password",
-    placeholder="hf_...",
-    help="Free at huggingface.co — never stored, lives only in this session."
-)
+# Validate key on startup
+try:
+    get_api_key()
+    st.sidebar.success("API key loaded ✅", icon="🔑")
+except ValueError:
+    st.sidebar.error("GEMINI_API_KEY missing — add it to your .env file")
 
-if api_key:
-    st.session_state["api_key"] = api_key
+st.sidebar.divider()
+st.sidebar.caption("Powered by Gemini Flash · Built with ❤️")
 
 if page == "📤 Upload & Process":
     from pages.upload import show
