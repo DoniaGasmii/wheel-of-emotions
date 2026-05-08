@@ -1,8 +1,8 @@
 import json
 import re
+import base64
 from pathlib import Path
-from google import genai
-from google.genai import types
+from huggingface_hub import InferenceClient
 
 
 PROMPT = """You are an expert at reading emotion wheel images.
@@ -32,21 +32,37 @@ Rules:
 - If a dot is between two emotions, pick the closest one
 - If a dot is only on a core emotion area, set sub and sub_sub to null
 - Count carefully — each sticker = 1 dot
-- total_dots must equal the sum of all counts"""
+- total_dots must equal the sum of all counts
+- Return ONLY the JSON object, nothing else"""
+
+MODEL = "Qwen/Qwen2-VL-7B-Instruct"
 
 
 def extract_emotions(image_bytes: bytes, api_key: str, date_str: str) -> dict:
-    client = genai.Client(api_key=api_key)
-
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-            PROMPT,
-        ],
+    client = InferenceClient(
+        provider="hf-inference",
+        api_key=api_key,
     )
 
-    raw = response.text.strip()
+    # Encode image to base64 data URL
+    b64 = base64.b64encode(image_bytes).decode("utf-8")
+    image_url = f"data:image/png;base64,{b64}"
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": image_url}},
+                    {"type": "text", "text": PROMPT},
+                ],
+            }
+        ],
+        max_tokens=1024,
+    )
+
+    raw = response.choices[0].message.content.strip()
     raw = re.sub(r"```json|```", "", raw).strip()
     result = json.loads(raw)
     result["date"] = date_str
@@ -61,7 +77,7 @@ def save_session(data: dict, sessions_dir: str = "sessions") -> Path:
     return out_path
 
 
-def load_all_sessions(sessions_dir: str = "sessions") -> list[dict]:
+def load_all_sessions(sessions_dir: str = "sessions") -> list:
     sessions_path = Path(sessions_dir)
     if not sessions_path.exists():
         return []
