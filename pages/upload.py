@@ -6,12 +6,6 @@ from utils.vision import extract_emotions, save_session, load_all_sessions
 
 
 def parse_date_from_filename(filename: str) -> tuple:
-    """
-    Try to parse date from filename stem.
-    Supports: dd.mm.yyyy → returns (YYYY-MM-DD, human label)
-    Falls back to YYYY-MM-DD format too.
-    Returns (None, error_msg) if unparseable.
-    """
     try:
         dt = datetime.strptime(filename, "%d.%m.%Y")
         return dt.strftime("%Y-%m-%d"), dt.strftime("%d %B %Y")
@@ -28,11 +22,6 @@ def parse_date_from_filename(filename: str) -> tuple:
 def show():
     st.title("📤 Upload & Process")
     st.caption("Upload a photo of the emotion wheel — AI will detect the dots for you.")
-
-    if "api_key" not in st.session_state or not st.session_state["api_key"]:
-        st.warning("Please enter your HF API key in the sidebar to get started.")
-        return
-
     st.divider()
 
     uploaded_files = st.file_uploader(
@@ -102,8 +91,7 @@ def _process(uploaded_file, date_str):
     with st.spinner(f"Reading the wheel for {date_str}... 🔍"):
         try:
             image_bytes = uploaded_file.read()
-            result = extract_emotions(image_bytes, st.session_state["api_key"], date_str)
-
+            result = extract_emotions(image_bytes, date_str)
             st.success(f"Found {result['total_dots']} dots across {len(result['emotions'])} emotion entries!")
 
             edited = st.data_editor(

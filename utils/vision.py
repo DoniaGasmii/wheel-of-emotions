@@ -39,7 +39,7 @@ Rules:
 - total_dots must equal the sum of all counts
 - Return ONLY the JSON object, nothing else"""
 
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-1.5-flash"
 
 
 def get_api_key() -> str:
