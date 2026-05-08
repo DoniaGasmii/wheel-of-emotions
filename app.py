@@ -18,10 +18,10 @@ page = st.sidebar.radio(
 
 st.sidebar.divider()
 api_key = st.sidebar.text_input(
-    "Anthropic API key",
+    "Google Gemini API key",
     type="password",
-    placeholder="sk-ant-...",
-    help="Your key is never stored — it lives only in this session."
+    placeholder="AIza...",
+    help="Free at aistudio.google.com — never stored, lives only in this session."
 )
 
 if api_key:

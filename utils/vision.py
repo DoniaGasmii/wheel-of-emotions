@@ -1,11 +1,11 @@
-import anthropic
-import base64
 import json
 import re
 from pathlib import Path
+from google import genai
+from google.genai import types
 
 
-SYSTEM_PROMPT = """You are an expert at reading emotion wheel images. 
+PROMPT = """You are an expert at reading emotion wheel images.
 You will be given a photo of a circular emotion wheel with small black dot stickers placed on it by participants.
 Your job is to identify exactly which emotions have dots on them and how many dots each emotion has.
 
@@ -35,41 +35,18 @@ Rules:
 - total_dots must equal the sum of all counts"""
 
 
-def encode_image(image_bytes: bytes) -> str:
-    return base64.standard_b64encode(image_bytes).decode("utf-8")
-
-
 def extract_emotions(image_bytes: bytes, api_key: str, date_str: str) -> dict:
-    client = anthropic.Anthropic(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
-    image_data = encode_image(image_bytes)
-
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/png",
-                            "data": image_data,
-                        },
-                    },
-                    {
-                        "type": "text",
-                        "text": "Please identify all the dot stickers on this emotion wheel and return the structured JSON."
-                    }
-                ],
-            }
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
+            PROMPT,
         ],
     )
 
-    raw = message.content[0].text.strip()
+    raw = response.text.strip()
     raw = re.sub(r"```json|```", "", raw).strip()
     result = json.loads(raw)
     result["date"] = date_str
@@ -93,4 +70,3 @@ def load_all_sessions(sessions_dir: str = "sessions") -> list[dict]:
         with open(f) as fp:
             sessions.append(json.load(fp))
     return sorted(sessions, key=lambda x: x["date"])
-
