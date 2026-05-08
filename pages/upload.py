@@ -5,12 +5,32 @@ from pathlib import Path
 from utils.vision import extract_emotions, save_session, load_all_sessions
 
 
+def parse_date_from_filename(filename: str) -> tuple:
+    """
+    Try to parse date from filename stem.
+    Supports: dd.mm.yyyy → returns (YYYY-MM-DD, human label)
+    Falls back to YYYY-MM-DD format too.
+    Returns (None, error_msg) if unparseable.
+    """
+    try:
+        dt = datetime.strptime(filename, "%d.%m.%Y")
+        return dt.strftime("%Y-%m-%d"), dt.strftime("%d %B %Y")
+    except ValueError:
+        pass
+    try:
+        dt = datetime.strptime(filename, "%Y-%m-%d")
+        return filename, dt.strftime("%d %B %Y")
+    except ValueError:
+        pass
+    return None, f"Could not parse date from `{filename}` — expected format: dd.mm.yyyy"
+
+
 def show():
     st.title("📤 Upload & Process")
     st.caption("Upload a photo of the emotion wheel — AI will detect the dots for you.")
 
     if "api_key" not in st.session_state or not st.session_state["api_key"]:
-        st.warning("Please enter your Anthropic API key in the sidebar to get started.")
+        st.warning("Please enter your Google Gemini API key in the sidebar to get started.")
         return
 
     st.divider()
@@ -19,24 +39,39 @@ def show():
         "Upload wheel image(s)",
         type=["png", "jpg", "jpeg"],
         accept_multiple_files=True,
-        help="Name your files by date (e.g. 2025-03-04.png) — the date will be used as the session label."
+        help="Name your files as dd.mm.yyyy.png — the date is detected automatically."
     )
 
     if not uploaded_files:
-        st.info("Upload one or more emotion wheel photos to begin. Name them by date for best results (e.g. `2025-03-04.png`).")
+        st.info("Upload one or more emotion wheel photos. Name them `dd.mm.yyyy.png` and the date will be detected automatically.")
         _show_existing_sessions()
         return
 
     for uploaded_file in uploaded_files:
         filename = Path(uploaded_file.name).stem
-        try:
-            datetime.strptime(filename, "%Y-%m-%d")
-            date_str = filename
-        except ValueError:
-            date_str = st.text_input(
-                f"Date for `{uploaded_file.name}` (YYYY-MM-DD)",
-                placeholder="2025-03-04",
+        date_str, display = parse_date_from_filename(filename)
+
+        if date_str:
+            verified = st.text_input(
+                f"📅 Detected date for `{uploaded_file.name}`",
+                value=date_str,
+                help="Auto-detected from filename. Edit if incorrect (format: YYYY-MM-DD).",
                 key=f"date_{uploaded_file.name}"
+            )
+            date_str = verified.strip() if verified.strip() else date_str
+            try:
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+                st.caption(f"✅ {dt.strftime('%d %B %Y')}")
+            except ValueError:
+                st.error("Invalid date format — please use YYYY-MM-DD")
+                continue
+        else:
+            st.warning(display)
+            date_str = st.text_input(
+                f"Enter date manually for `{uploaded_file.name}`",
+                placeholder="2025-03-04",
+                help="Format: YYYY-MM-DD",
+                key=f"date_manual_{uploaded_file.name}"
             )
             if not date_str:
                 continue
