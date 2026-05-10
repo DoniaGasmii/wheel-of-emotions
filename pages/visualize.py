@@ -1,167 +1,81 @@
 import streamlit as st
 import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
+import json
+import io
+import zipfile
+from utils.emotion_tree import EMOTION_TREE
 from utils.vision import load_all_sessions
 
 
-EMOTION_ANGLES = {
-    "Happy": {
-        "angle": 180,
-        "color": "#f9c74f",
-        "subs": {
-            "Playful":    {"angle": 210, "subs": {"Aroused": 225, "Cheeky": 220}},
-            "Content":    {"angle": 195, "subs": {"Joyful": 202, "Free": 208}},
-            "Interested": {"angle": 185, "subs": {"Curious": 188, "Inquisitive": 182}},
-            "Proud":      {"angle": 175, "subs": {"Successful": 172, "Confident": 178}},
-            "Accepted":   {"angle": 165, "subs": {"Respected": 162, "Valued": 168}},
-            "Powerful":   {"angle": 158, "subs": {"Courageous": 155, "Creative": 161}},
-            "Peaceful":   {"angle": 150, "subs": {"Loving": 147, "Thankful": 153}},
-            "Trusting":   {"angle": 143, "subs": {"Sensitive": 140, "Intimate": 146}},
-            "Optimistic": {"angle": 135, "subs": {"Hopeful": 132, "Inspired": 138}},
-        }
-    },
-    "Surprised": {
-        "angle": 270,
-        "color": "#90e0ef",
-        "subs": {
-            "Startled":   {"angle": 280, "subs": {"Confused": 285, "Amazed": 275}},
-            "Confused":   {"angle": 265, "subs": {"Perplexed": 268, "Disillusioned": 262}},
-            "Shocked":    {"angle": 255, "subs": {"Dismayed": 258, "Speechless": 252}},
-            "Excited":    {"angle": 290, "subs": {"Energetic": 295, "Eager": 288}},
-        }
-    },
-    "Bad": {
-        "angle": 315,
-        "color": "#9b5de5",
-        "subs": {
-            "Tired":      {"angle": 330, "subs": {"Sleepy": 335, "Unfocused": 328}},
-            "Stressed":   {"angle": 320, "subs": {"Overwhelmed": 325, "Out of control": 318}},
-            "Busy":       {"angle": 312, "subs": {"Pressured": 315, "Rushed": 308}},
-            "Bored":      {"angle": 303, "subs": {"Indifferent": 306, "Apathetic": 300}},
-        }
-    },
-    "Fearful": {
-        "angle": 350,
-        "color": "#c77dff",
-        "subs": {
-            "Scared":     {"angle": 360, "subs": {"Helpless": 365, "Frightened": 358}},
-            "Anxious":    {"angle": 350, "subs": {"Overwhelmed": 353, "Worried": 347}},
-            "Insecure":   {"angle": 342, "subs": {"Inadequate": 345, "Inferior": 339}},
-            "Weak":       {"angle": 335, "subs": {"Worthless": 338, "Insignificant": 332}},
-        }
-    },
-    "Angry": {
-        "angle": 30,
-        "color": "#f94144",
-        "subs": {
-            "Let down":   {"angle": 20, "subs": {"Betrayed": 17, "Resentful": 22}},
-            "Humiliated": {"angle": 30, "subs": {"Disrespected": 27, "Ridiculed": 33}},
-            "Bitter":     {"angle": 40, "subs": {"Indignant": 37, "Violated": 43}},
-            "Mad":        {"angle": 50, "subs": {"Furious": 47, "Jealous": 53}},
-            "Aggressive": {"angle": 60, "subs": {"Provoked": 57, "Hostile": 63}},
-            "Frustrated": {"angle": 70, "subs": {"Infuriated": 67, "Annoyed": 73}},
-            "Distant":    {"angle": 80, "subs": {"Withdrawn": 77, "Numb": 83}},
-            "Critical":   {"angle": 88, "subs": {"Skeptical": 85, "Dismissive": 91}},
-        }
-    },
-    "Disgusted": {
-        "angle": 110,
-        "color": "#43aa8b",
-        "subs": {
-            "Disapproving": {"angle": 100, "subs": {"Judgmental": 97, "Embarrassed": 103}},
-            "Disappointed": {"angle": 110, "subs": {"Appalled": 107, "Revolted": 113}},
-            "Awful":        {"angle": 120, "subs": {"Nauseated": 117, "Detestable": 123}},
-            "Repelled":     {"angle": 130, "subs": {"Horrified": 127, "Hesitant": 133}},
-        }
-    },
-    "Sad": {
-        "angle": 90,
-        "color": "#4361ee",
-        "subs": {
-            "Hurt":        {"angle": 82, "subs": {"Embarrassed": 79, "Disappointed": 85}},
-            "Depressed":   {"angle": 90, "subs": {"Inferior": 87, "Empty": 93}},
-            "Guilty":      {"angle": 98, "subs": {"Remorseful": 95, "Ashamed": 101}},
-            "Despair":     {"angle": 106, "subs": {"Powerless": 103, "Grief": 109}},
-            "Vulnerable":  {"angle": 75, "subs": {"Fragile": 72, "Victimised": 78}},
-            "Lonely":      {"angle": 67, "subs": {"Isolated": 64, "Abandoned": 70}},
-        }
-    },
+# ── Angle map: core emotions placed around the circle ──────────────────────
+CORE_ANGLES = {
+    "Happy":     180,
+    "Surprised": 270,
+    "Bad":       315,
+    "Fearful":   350,
+    "Angry":     45,
+    "Disgusted": 110,
+    "Sad":       145,
 }
 
-
-def get_all_emotion_points():
-    points = []
-    for core, core_data in EMOTION_ANGLES.items():
-        points.append({
-            "label": core, "core": core, "sub": None, "sub_sub": None,
-            "angle": core_data["angle"], "radius": 0.33, "color": core_data["color"]
-        })
-        for sub, sub_data in core_data["subs"].items():
-            points.append({
-                "label": sub, "core": core, "sub": sub, "sub_sub": None,
-                "angle": sub_data["angle"], "radius": 0.66, "color": core_data["color"]
-            })
-            for sub_sub, angle in sub_data["subs"].items():
-                points.append({
-                    "label": sub_sub, "core": core, "sub": sub, "sub_sub": sub_sub,
-                    "angle": angle, "radius": 1.0, "color": core_data["color"]
-                })
+# spread sub-emotions evenly within each core's sector
+def build_angle_map():
+    points = {}
+    sector_width = 50
+    for core, base_angle in CORE_ANGLES.items():
+        color = EMOTION_TREE[core]["color"]
+        subs = list(EMOTION_TREE[core]["subs"].items())
+        n = len(subs)
+        for i, (sub, leaves) in enumerate(subs):
+            sub_angle = base_angle - sector_width/2 + (i+0.5) * sector_width / n
+            points[(core, sub, None)] = {"angle": sub_angle, "radius": 0.5, "color": color}
+            nl = len(leaves)
+            for j, leaf in enumerate(leaves):
+                leaf_angle = sub_angle - 4 + (j+0.5) * 8 / max(nl,1)
+                points[(core, sub, leaf)] = {"angle": leaf_angle, "radius": 1.0, "color": color}
+        points[(core, None, None)] = {"angle": base_angle, "radius": 0.15, "color": color}
     return points
 
-
-def find_emotion_point(core, sub, sub_sub, all_points):
-    for p in all_points:
-        if p["core"] == core and p["sub"] == sub and p["sub_sub"] == sub_sub:
-            return p
-        if sub_sub and p["core"] == core and p["sub"] == sub and p["label"] == sub_sub:
-            return p
-    for p in all_points:
-        if sub and p["core"] == core and p["label"] == sub:
-            return p
-    for p in all_points:
-        if p["core"] == core and p["sub"] is None:
-            return p
-    return None
+ANGLE_MAP = build_angle_map()
 
 
-def session_to_polar(session, all_points):
-    rows = []
-    for e in session["emotions"]:
-        pt = find_emotion_point(e.get("core"), e.get("sub"), e.get("sub_sub"), all_points)
-        if pt:
-            rows.append({
-                "angle": pt["angle"],
-                "radius": pt["radius"] * e.get("count", 1),
-                "count": e.get("count", 1),
-                "label": pt["label"],
-                "core": pt["core"],
-                "color": pt["color"],
-            })
-    return rows
+def sessions_from_upload(data: dict) -> list:
+    if "sessions" in data:
+        return sorted(data["sessions"], key=lambda x: x["date"])
+    if isinstance(data, list):
+        return sorted(data, key=lambda x: x["date"])
+    return []
 
 
-def make_polar_figure(rows, date_str, all_points):
+def make_polar_figure(session: dict, title: str) -> go.Figure:
     fig = go.Figure()
 
     core_groups = {}
-    for row in rows:
-        core = row["core"]
+    for e in session.get("emotions", []):
+        key = (e.get("core"), e.get("sub"), e.get("sub_sub"))
+        pt = ANGLE_MAP.get(key)
+        if not pt:
+            # fallback to sub level
+            key2 = (e.get("core"), e.get("sub"), None)
+            pt = ANGLE_MAP.get(key2)
+        if not pt:
+            continue
+        core = e.get("core")
         if core not in core_groups:
-            core_groups[core] = {"angles": [], "radii": [], "colors": [], "labels": []}
-        core_groups[core]["angles"].append(row["angle"])
-        core_groups[core]["radii"].append(row["radius"])
-        core_groups[core]["colors"].append(row["color"])
-        core_groups[core]["labels"].append(f"{row['label']} ({row['count']})")
+            core_groups[core] = {"angles": [], "radii": [], "texts": [], "color": pt["color"], "sizes": []}
+        label = e.get("sub_sub") or e.get("sub") or core
+        core_groups[core]["angles"].append(pt["angle"])
+        core_groups[core]["radii"].append(pt["radius"] * e.get("count", 1))
+        core_groups[core]["texts"].append(f"{label} ({e.get('count',1)})")
+        core_groups[core]["sizes"].append(pt["radius"] * e.get("count", 1) * 20 + 8)
 
-    for core, data in core_groups.items():
+    for core, d in core_groups.items():
         fig.add_trace(go.Scatterpolar(
-            r=data["radii"],
-            theta=data["angles"],
+            r=d["radii"], theta=d["angles"],
             mode="markers+text",
-            marker=dict(size=[r * 18 + 6 for r in data["radii"]], color=data["colors"], opacity=0.85),
-            text=data["labels"],
-            textposition="top center",
+            marker=dict(size=d["sizes"], color=d["color"], opacity=0.85,
+                       line=dict(color="white", width=1)),
+            text=d["texts"], textposition="top center",
             textfont=dict(size=9, color="white"),
             name=core,
             hovertemplate="<b>%{text}</b><extra></extra>",
@@ -170,12 +84,12 @@ def make_polar_figure(rows, date_str, all_points):
     fig.update_layout(
         polar=dict(
             bgcolor="#0d1117",
-            radialaxis=dict(visible=False, range=[0, 1.5]),
+            radialaxis=dict(visible=False, range=[0, 1.8]),
             angularaxis=dict(
                 tickmode="array",
-                tickvals=[d["angle"] for d in EMOTION_ANGLES.values()],
-                ticktext=list(EMOTION_ANGLES.keys()),
-                tickfont=dict(size=12, color="#aaaaaa"),
+                tickvals=list(CORE_ANGLES.values()),
+                ticktext=list(CORE_ANGLES.keys()),
+                tickfont=dict(size=13, color="#aaa"),
                 direction="clockwise",
                 rotation=90,
                 gridcolor="#222",
@@ -183,119 +97,139 @@ def make_polar_figure(rows, date_str, all_points):
             ),
         ),
         paper_bgcolor="#0d1117",
-        plot_bgcolor="#0d1117",
         font=dict(color="white"),
-        title=dict(text=f"Session — {date_str}", font=dict(size=16, color="#e0e0e0"), x=0.5),
+        title=dict(text=title, font=dict(size=15, color="#e0e0e0"), x=0.5),
         showlegend=True,
-        legend=dict(bgcolor="#0d1117", font=dict(color="#ccc"), bordercolor="#333", borderwidth=1),
-        margin=dict(t=60, b=40, l=40, r=40),
-        height=580,
+        legend=dict(bgcolor="#0d1117", font=dict(color="#ccc"),
+                   bordercolor="#333", borderwidth=1),
+        margin=dict(t=60, b=40, l=60, r=60),
+        height=560,
     )
     return fig
 
 
-def show():
-    st.title("📊 Visualize")
-    st.caption("Explore the emotional journey of your cohort across the semester.")
-
-    sessions = load_all_sessions()
-
-    if not sessions:
-        st.info("No sessions yet — upload and process some wheel photos first!")
-        return
-
-    all_points = get_all_emotion_points()
-
-    st.divider()
-    mode = st.radio("Mode", ["Single session", "Timelapse"], horizontal=True)
-
-    if mode == "Single session":
-        dates = [s["date"] for s in sessions]
-        selected = st.select_slider("Select session", options=dates)
-        session = next(s for s in sessions if s["date"] == selected)
-        rows = session_to_polar(session, all_points)
-        if rows:
-            fig = make_polar_figure(rows, selected, all_points)
-            st.plotly_chart(fig, use_container_width=True)
-            _show_summary(session)
-        else:
-            st.warning("No matchable emotions found for this session.")
-
-    elif mode == "Timelapse":
-        st.info("Use the slider to animate through the weeks.")
-
-        frames = []
-        for s in sessions:
-            rows = session_to_polar(s, all_points)
-            if rows:
-                frames.append((s["date"], rows))
-
-        if not frames:
-            st.warning("No sessions with matchable emotions found.")
-            return
-
-        idx = st.slider("Week", 0, len(frames) - 1, 0, format=f"%d")
-        date_str, rows = frames[idx]
-        fig = make_polar_figure(rows, date_str, all_points)
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.caption(f"Session {idx + 1} of {len(frames)} — {date_str}")
-        _show_summary(next(s for s in sessions if s["date"] == date_str))
-
-    st.divider()
-    _show_core_evolution(sessions, all_points)
-
-
-def _show_summary(session):
-    total = session.get("total_dots", 0)
-    emotions = session.get("emotions", [])
-    core_counts = {}
-    for e in emotions:
-        c = e.get("core", "Unknown")
-        core_counts[c] = core_counts.get(c, 0) + e.get("count", 0)
-
-    cols = st.columns(len(core_counts) + 1)
-    cols[0].metric("Total dots", total)
-    for i, (core, count) in enumerate(sorted(core_counts.items(), key=lambda x: -x[1])):
-        cols[i + 1].metric(core, count)
-
-
-def _show_core_evolution(sessions, all_points):
-    st.subheader("Core emotion evolution")
-    st.caption("How the balance of core emotions shifted across the semester.")
-
-    core_names = list(EMOTION_ANGLES.keys())
+def make_evolution_figure(sessions: list) -> go.Figure:
     dates = [s["date"] for s in sessions]
-    data = {c: [] for c in core_names}
-
-    for s in sessions:
-        counts = {c: 0 for c in core_names}
-        for e in s.get("emotions", []):
-            c = e.get("core")
-            if c in counts:
-                counts[c] += e.get("count", 0)
-        for c in core_names:
-            data[c].append(counts[c])
-
     fig = go.Figure()
-    for core in core_names:
-        color = EMOTION_ANGLES[core]["color"]
+    for core in EMOTION_TREE:
+        color = EMOTION_TREE[core]["color"]
+        counts = []
+        for s in sessions:
+            total = sum(e.get("count", 0) for e in s.get("emotions", [])
+                       if e.get("core") == core)
+            counts.append(total)
         fig.add_trace(go.Scatter(
-            x=dates, y=data[core],
-            name=core,
+            x=dates, y=counts, name=core,
             mode="lines+markers",
-            line=dict(color=color, width=2),
-            marker=dict(size=7, color=color),
+            line=dict(color=color, width=2.5),
+            marker=dict(size=8, color=color),
         ))
-
     fig.update_layout(
-        paper_bgcolor="#0d1117",
-        plot_bgcolor="#0d1117",
+        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
         font=dict(color="white"),
-        xaxis=dict(gridcolor="#222", color="#aaa"),
+        xaxis=dict(gridcolor="#222", color="#aaa", title="Session"),
         yaxis=dict(gridcolor="#222", color="#aaa", title="Dot count"),
         legend=dict(bgcolor="#0d1117", bordercolor="#333", borderwidth=1),
-        height=350,
-        margin=dict(t=20, b=40),
+        height=380, margin=dict(t=20, b=40),
+        title=dict(text="Emotion evolution across sessions",
+                  font=dict(size=14, color="#e0e0e0"), x=0.5)
     )
+    return fig
+
+
+def export_zip(sessions: list) -> bytes:
+    """Export all session charts as PNGs in a ZIP."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for s in sessions:
+            fig = make_polar_figure(s, s["date"])
+            img_bytes = fig.to_image(format="png", width=800, height=600, scale=2)
+            zf.writestr(f"{s['date']}.png", img_bytes)
+        # also add the evolution chart
+        if len(sessions) > 1:
+            evo = make_evolution_figure(sessions)
+            evo_bytes = evo.to_image(format="png", width=1000, height=500, scale=2)
+            zf.writestr("evolution.png", evo_bytes)
+    buf.seek(0)
+    return buf.read()
+
+
+def show():
+    st.markdown('<h2 style="margin-bottom:4px">📊 Analyse</h2>', unsafe_allow_html=True)
+    st.caption("Upload your exported sessions file to explore the emotional journey.")
+
+    # --- Load data ---
+    sessions = []
+
+    uploaded = st.file_uploader(
+        "Upload feelmap_sessions.json",
+        type=["json"],
+        help="Export this file from the Annotate tab."
+    )
+
+    if uploaded:
+        try:
+            data = json.load(uploaded)
+            sessions = sessions_from_upload(data)
+            st.success(f"Loaded {len(sessions)} sessions ✅")
+        except Exception as e:
+            st.error(f"Could not read file: {e}")
+            return
+    else:
+        # fallback: use locally saved sessions
+        sessions = load_all_sessions()
+        if sessions:
+            st.info(f"Showing {len(sessions)} locally saved sessions. Upload an export file to use different data.")
+
+    if not sessions:
+        st.info("No data yet — annotate some sessions first, then export and upload here.")
+        return
+
+    st.divider()
+
+    # --- Timelapse ---
+    st.markdown("#### Session timelapse")
+    dates = [s["date"] for s in sessions]
+    idx = st.slider("Week", 0, len(sessions)-1, 0,
+                   format="%d", key="week_slider")
+    selected = sessions[idx]
+    fig = make_polar_figure(selected, f"Session — {selected['date']}")
     st.plotly_chart(fig, use_container_width=True)
+
+    # per-session dot summary
+    core_counts = {}
+    for e in selected.get("emotions", []):
+        c = e.get("core", "?")
+        core_counts[c] = core_counts.get(c, 0) + e.get("count", 0)
+    cols = st.columns(len(core_counts) + 1)
+    cols[0].metric("Total dots", selected.get("total_dots", "?"))
+    for i, (core, cnt) in enumerate(sorted(core_counts.items(), key=lambda x: -x[1])):
+        cols[i+1].metric(core, cnt)
+
+    st.divider()
+
+    # --- Evolution ---
+    if len(sessions) > 1:
+        st.markdown("#### Emotion evolution")
+        evo_fig = make_evolution_figure(sessions)
+        st.plotly_chart(evo_fig, use_container_width=True)
+        st.divider()
+
+    # --- Export ---
+    st.markdown("#### Export")
+    st.caption("Download all session charts as PNGs in a ZIP file.")
+
+    if st.button("📦 Generate export ZIP", use_container_width=True):
+        with st.spinner("Rendering charts..."):
+            try:
+                zip_bytes = export_zip(sessions)
+                st.download_button(
+                    label="⬇️ Download ZIP (PNG charts)",
+                    data=zip_bytes,
+                    file_name="feelmap_export.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    type="primary"
+                )
+            except Exception as e:
+                st.error(f"Export failed: {e}")
