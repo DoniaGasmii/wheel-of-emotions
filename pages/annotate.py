@@ -110,7 +110,20 @@ def show():
         st.info("No sessions saved yet.")
         return
 
-    st.markdown(f"#### Saved sessions ({len(sessions)})")
+    # Export button at the top, next to the header
+    col_hdr, col_export = st.columns([2, 1])
+    with col_hdr:
+        st.markdown(f"#### Saved sessions ({len(sessions)})")
+    with col_export:
+        export_data = json.dumps({"sessions": sessions}, indent=2)
+        st.download_button(
+            label=f"⬇️ Export all ({len(sessions)} weeks)",
+            data=export_data,
+            file_name="feelmap_sessions.json",
+            mime="application/json",
+            use_container_width=True,
+            type="primary"
+        )
 
     for s in sessions:
         with st.expander(f"📅 {s['date']} — {s.get('total_dots', '?')} dots"):
@@ -118,14 +131,3 @@ def show():
             if st.button("🗑 Delete", key=f"del_{s['date']}"):
                 Path(f"sessions/{s['date']}.json").unlink(missing_ok=True)
                 st.rerun()
-
-    st.divider()
-    export_data = json.dumps({"sessions": sessions}, indent=2)
-    st.download_button(
-        label=f"⬇️ Export all sessions ({len(sessions)} weeks)",
-        data=export_data,
-        file_name="feelmap_sessions.json",
-        mime="application/json",
-        use_container_width=True,
-        type="primary"
-    )
