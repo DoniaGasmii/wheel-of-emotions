@@ -41,7 +41,7 @@ pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-No API key needed for annotation. Open your browser at `http://localhost:8501`.
+Open your browser at `http://localhost:8501`.
 
 ---
 
