@@ -10,13 +10,22 @@ from utils.vision import (
 
 
 def parse_date_from_filename(filename: str):
-    for fmt in ("%d_%m_%Y", "%d.%m.%Y", "%Y-%m-%d", "%d.%m.%Y"):
+    for fmt in ("%d_%m_%Y", "%d.%m.%Y", "%Y-%m-%d"):
         try:
             dt = datetime.strptime(filename, fmt)
             return dt.strftime("%Y-%m-%d"), dt.strftime("%d %B %Y")
         except ValueError:
             continue
     return None, f"Could not parse date from `{filename}`"
+
+
+def session_to_counts(session: dict) -> dict:
+    """Convert a saved session's emotions list back into a counts dict keyed by (core, sub, leaf)."""
+    counts = {}
+    for e in session.get("emotions", []):
+        key = (e.get("core"), e.get("sub"), e.get("sub_sub"))
+        counts[key] = e.get("count", 0)
+    return counts
 
 
 def show():
@@ -77,10 +86,12 @@ def show():
                 if not date_str:
                     return
 
-            # warn if date already exists but don't block
-            existing = st.session_state.get("sessions", {})
-            if date_str in existing:
-                st.warning(f"⚠️ You already have data for {date_str} — saving will overwrite it.")
+            # check if session already exists and pre-fill
+            existing_sessions = st.session_state.get("sessions", {})
+            existing_counts = {}
+            if date_str in existing_sessions:
+                existing_counts = session_to_counts(existing_sessions[date_str])
+                st.info(f"📋 Loaded existing annotation for {date_str} — counters pre-filled. Edit and save to update.")
 
         with col_form:
             st.markdown("#### Mark the dots")
@@ -90,27 +101,52 @@ def show():
 
             for core, core_data in EMOTION_TREE.items():
                 with st.expander(f"● {core}", expanded=False):
+
+                    # ── Root level: dot directly on the core emotion ─────────
+                    root_key = (core, None, None)
+                    root_default = existing_counts.get(root_key, 0)
+                    rc = st.number_input(
+                        f"On '{core}' directly",
+                        min_value=0, max_value=10,
+                        value=root_default, step=1,
+                        key=f"n_{core}_root"
+                    )
+                    if rc > 0:
+                        counts[root_key] = rc
+
+                    st.divider()
+
+                    # ── Sub emotions ─────────────────────────────────────────
                     for sub, leaves in core_data["subs"].items():
                         st.markdown(f"**{sub}**")
+
+                        sub_key = (core, sub, None)
+                        sub_default = existing_counts.get(sub_key, 0)
                         c = st.number_input(
-                            sub, min_value=0, max_value=10, value=0, step=1,
+                            f"On '{sub}' directly",
+                            min_value=0, max_value=10,
+                            value=sub_default, step=1,
                             key=f"n_{core}_{sub}_direct",
                             label_visibility="collapsed"
                         )
                         if c > 0:
-                            counts[(core, sub, None)] = c
+                            counts[sub_key] = c
 
                         if leaves:
                             leaf_cols = st.columns(len(leaves))
                             for i, leaf in enumerate(leaves):
                                 with leaf_cols[i]:
+                                    leaf_key = (core, sub, leaf)
+                                    leaf_default = existing_counts.get(leaf_key, 0)
                                     lc = st.number_input(
-                                        leaf, min_value=0, max_value=10,
-                                        value=0, step=1,
+                                        leaf,
+                                        min_value=0, max_value=10,
+                                        value=leaf_default, step=1,
                                         key=f"n_{core}_{sub}_{leaf}"
                                     )
                                     if lc > 0:
-                                        counts[(core, sub, leaf)] = lc
+                                        counts[leaf_key] = lc
+
                         st.divider()
 
             total = sum(counts.values())
