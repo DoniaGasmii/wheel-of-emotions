@@ -28,8 +28,8 @@ st.sidebar.divider()
 st.sidebar.caption("Built with ❤️ for the facilitators")
 
 if page == "1 · Annotate":
-    from pages.annotate import show
+    from views.annotate import show
     show()
 else:
-    from pages.visualize import show
+    from views.visualize import show
     show()
