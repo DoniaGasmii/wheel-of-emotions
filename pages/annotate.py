@@ -3,7 +3,10 @@ import json
 from datetime import datetime
 from pathlib import Path
 from utils.emotion_tree import EMOTION_TREE
-from utils.vision import save_session, load_all_sessions
+from utils.vision import (
+    save_session_to_state, load_sessions_from_state,
+    delete_session_from_state, sessions_to_json, sessions_from_json
+)
 
 
 def parse_date_from_filename(filename: str):
@@ -18,8 +21,30 @@ def parse_date_from_filename(filename: str):
 
 def show():
     st.markdown('<h2 style="margin-bottom:4px">📍 Annotate</h2>', unsafe_allow_html=True)
-    st.caption("Upload a wheel photo, mark the dots, save the session.")
+    st.caption("Upload your save file to continue, or start fresh for a new semester.")
 
+    # ── Load existing save file ──────────────────────────────────────────────
+    with st.expander("📂 Load existing save file", expanded="sessions" not in st.session_state):
+        uploaded_save = st.file_uploader(
+            "Upload feelmap_sessions.json",
+            type=["json"],
+            key="load_save",
+            help="Upload your save file from a previous session to continue where you left off."
+        )
+        if uploaded_save:
+            try:
+                data = json.load(uploaded_save)
+                sessions = sessions_from_json(data)
+                st.session_state["sessions"] = {s["date"]: s for s in sessions}
+                st.success(f"✅ Loaded {len(sessions)} sessions!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Could not read file: {e}")
+
+    st.divider()
+
+    # ── Upload wheel image ───────────────────────────────────────────────────
+    st.markdown("#### New session")
     uploaded_file = st.file_uploader(
         "Upload wheel image",
         type=["png", "jpg", "jpeg"],
@@ -55,7 +80,7 @@ def show():
 
         with col_form:
             st.markdown("#### Mark the dots")
-            st.caption("Enter the count for each emotion that has a sticker. Leave at 0 if none.")
+            st.caption("Open each emotion group, enter the count for emotions that have stickers.")
 
             counts = {}
 
@@ -63,10 +88,8 @@ def show():
                 with st.expander(f"● {core}", expanded=False):
                     for sub, leaves in core_data["subs"].items():
                         st.markdown(f"**{sub}**")
-
                         c = st.number_input(
-                            f"{sub} (direct hit)",
-                            min_value=0, max_value=10, value=0, step=1,
+                            sub, min_value=0, max_value=10, value=0, step=1,
                             key=f"n_{core}_{sub}_direct",
                             label_visibility="collapsed"
                         )
@@ -98,36 +121,35 @@ def show():
                         for k, v in counts.items()
                     ]
                     session = {"date": date_str, "total_dots": total, "emotions": emotions}
-                    save_session(session)
+                    save_session_to_state(session)
                     st.success(f"✅ Saved — {total} dots for {date_str}")
                     st.balloons()
 
-    # --- Saved sessions + export ---
+    # ── Saved sessions ───────────────────────────────────────────────────────
     st.divider()
-    sessions = load_all_sessions()
+    sessions = load_sessions_from_state()
 
     if not sessions:
-        st.info("No sessions saved yet.")
+        st.info("No sessions yet — annotate a wheel above to get started.")
         return
 
-    # Export button at the top, next to the header
     col_hdr, col_export = st.columns([2, 1])
     with col_hdr:
         st.markdown(f"#### Saved sessions ({len(sessions)})")
     with col_export:
-        export_data = json.dumps({"sessions": sessions}, indent=2)
         st.download_button(
-            label=f"⬇️ Export all ({len(sessions)} weeks)",
-            data=export_data,
+            label="⬇️ Export save file",
+            data=sessions_to_json(sessions),
             file_name="feelmap_sessions.json",
             mime="application/json",
             use_container_width=True,
-            type="primary"
+            type="primary",
+            help="Download and keep this file safe — upload it next time to continue."
         )
 
     for s in sessions:
         with st.expander(f"📅 {s['date']} — {s.get('total_dots', '?')} dots"):
             st.json(s, expanded=False)
             if st.button("🗑 Delete", key=f"del_{s['date']}"):
-                Path(f"sessions/{s['date']}.json").unlink(missing_ok=True)
+                delete_session_from_state(s["date"])
                 st.rerun()

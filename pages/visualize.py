@@ -4,10 +4,9 @@ import json
 import io
 import zipfile
 from utils.emotion_tree import EMOTION_TREE
-from utils.vision import load_all_sessions
+from utils.vision import sessions_from_json, load_sessions_from_state
 
 
-# ── Angle map: core emotions placed around the circle ──────────────────────
 CORE_ANGLES = {
     "Happy":     180,
     "Surprised": 270,
@@ -18,7 +17,7 @@ CORE_ANGLES = {
     "Sad":       145,
 }
 
-# spread sub-emotions evenly within each core's sector
+
 def build_angle_map():
     points = {}
     sector_width = 50
@@ -31,7 +30,7 @@ def build_angle_map():
             points[(core, sub, None)] = {"angle": sub_angle, "radius": 0.5, "color": color}
             nl = len(leaves)
             for j, leaf in enumerate(leaves):
-                leaf_angle = sub_angle - 4 + (j+0.5) * 8 / max(nl,1)
+                leaf_angle = sub_angle - 4 + (j+0.5) * 8 / max(nl, 1)
                 points[(core, sub, leaf)] = {"angle": leaf_angle, "radius": 1.0, "color": color}
         points[(core, None, None)] = {"angle": base_angle, "radius": 0.15, "color": color}
     return points
@@ -39,35 +38,24 @@ def build_angle_map():
 ANGLE_MAP = build_angle_map()
 
 
-def sessions_from_upload(data: dict) -> list:
-    if "sessions" in data:
-        return sorted(data["sessions"], key=lambda x: x["date"])
-    if isinstance(data, list):
-        return sorted(data, key=lambda x: x["date"])
-    return []
-
-
 def make_polar_figure(session: dict, title: str) -> go.Figure:
     fig = go.Figure()
-
     core_groups = {}
+
     for e in session.get("emotions", []):
         key = (e.get("core"), e.get("sub"), e.get("sub_sub"))
-        pt = ANGLE_MAP.get(key)
-        if not pt:
-            # fallback to sub level
-            key2 = (e.get("core"), e.get("sub"), None)
-            pt = ANGLE_MAP.get(key2)
+        pt = ANGLE_MAP.get(key) or ANGLE_MAP.get((e.get("core"), e.get("sub"), None))
         if not pt:
             continue
         core = e.get("core")
         if core not in core_groups:
             core_groups[core] = {"angles": [], "radii": [], "texts": [], "color": pt["color"], "sizes": []}
         label = e.get("sub_sub") or e.get("sub") or core
+        r = pt["radius"] * e.get("count", 1)
         core_groups[core]["angles"].append(pt["angle"])
-        core_groups[core]["radii"].append(pt["radius"] * e.get("count", 1))
+        core_groups[core]["radii"].append(r)
         core_groups[core]["texts"].append(f"{label} ({e.get('count',1)})")
-        core_groups[core]["sizes"].append(pt["radius"] * e.get("count", 1) * 20 + 8)
+        core_groups[core]["sizes"].append(r * 20 + 8)
 
     for core, d in core_groups.items():
         fig.add_trace(go.Scatterpolar(
@@ -113,11 +101,10 @@ def make_evolution_figure(sessions: list) -> go.Figure:
     fig = go.Figure()
     for core in EMOTION_TREE:
         color = EMOTION_TREE[core]["color"]
-        counts = []
-        for s in sessions:
-            total = sum(e.get("count", 0) for e in s.get("emotions", [])
-                       if e.get("core") == core)
-            counts.append(total)
+        counts = [
+            sum(e.get("count", 0) for e in s.get("emotions", []) if e.get("core") == core)
+            for s in sessions
+        ]
         fig.add_trace(go.Scatter(
             x=dates, y=counts, name=core,
             mode="lines+markers",
@@ -130,7 +117,7 @@ def make_evolution_figure(sessions: list) -> go.Figure:
         xaxis=dict(gridcolor="#222", color="#aaa", title="Session"),
         yaxis=dict(gridcolor="#222", color="#aaa", title="Dot count"),
         legend=dict(bgcolor="#0d1117", bordercolor="#333", borderwidth=1),
-        height=380, margin=dict(t=20, b=40),
+        height=380, margin=dict(t=40, b=40),
         title=dict(text="Emotion evolution across sessions",
                   font=dict(size=14, color="#e0e0e0"), x=0.5)
     )
@@ -138,14 +125,12 @@ def make_evolution_figure(sessions: list) -> go.Figure:
 
 
 def export_zip(sessions: list) -> bytes:
-    """Export all session charts as PNGs in a ZIP."""
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
         for s in sessions:
             fig = make_polar_figure(s, s["date"])
             img_bytes = fig.to_image(format="png", width=800, height=600, scale=2)
             zf.writestr(f"{s['date']}.png", img_bytes)
-        # also add the evolution chart
         if len(sessions) > 1:
             evo = make_evolution_figure(sessions)
             evo_bytes = evo.to_image(format="png", width=1000, height=500, scale=2)
@@ -156,47 +141,43 @@ def export_zip(sessions: list) -> bytes:
 
 def show():
     st.markdown('<h2 style="margin-bottom:4px">📊 Analyse</h2>', unsafe_allow_html=True)
-    st.caption("Upload your exported sessions file to explore the emotional journey.")
+    st.caption("Upload your save file to explore the emotional journey of your cohort.")
 
-    # --- Load data ---
     sessions = []
 
     uploaded = st.file_uploader(
         "Upload feelmap_sessions.json",
         type=["json"],
-        help="Export this file from the Annotate tab."
+        help="Export this from the Annotate tab."
     )
 
     if uploaded:
         try:
             data = json.load(uploaded)
-            sessions = sessions_from_upload(data)
-            st.success(f"Loaded {len(sessions)} sessions ✅")
+            sessions = sessions_from_json(data)
+            st.success(f"✅ Loaded {len(sessions)} sessions")
         except Exception as e:
             st.error(f"Could not read file: {e}")
             return
     else:
-        # fallback: use locally saved sessions
-        sessions = load_all_sessions()
+        sessions = load_sessions_from_state()
         if sessions:
-            st.info(f"Showing {len(sessions)} locally saved sessions. Upload an export file to use different data.")
+            st.info("Showing sessions from current workspace. Upload a save file to load different data.")
 
     if not sessions:
-        st.info("No data yet — annotate some sessions first, then export and upload here.")
+        st.info("No data yet — upload a `feelmap_sessions.json` file to get started.")
         return
 
     st.divider()
 
-    # --- Timelapse ---
+    # ── Timelapse ────────────────────────────────────────────────────────────
     st.markdown("#### Session timelapse")
-    dates = [s["date"] for s in sessions]
-    idx = st.slider("Week", 0, len(sessions)-1, 0,
-                   format="%d", key="week_slider")
+    idx = st.slider("Week", 0, len(sessions)-1, 0)
     selected = sessions[idx]
     fig = make_polar_figure(selected, f"Session — {selected['date']}")
     st.plotly_chart(fig, use_container_width=True)
 
-    # per-session dot summary
+    # dot summary
     core_counts = {}
     for e in selected.get("emotions", []):
         c = e.get("core", "?")
@@ -208,23 +189,21 @@ def show():
 
     st.divider()
 
-    # --- Evolution ---
+    # ── Evolution ────────────────────────────────────────────────────────────
     if len(sessions) > 1:
         st.markdown("#### Emotion evolution")
-        evo_fig = make_evolution_figure(sessions)
-        st.plotly_chart(evo_fig, use_container_width=True)
+        st.plotly_chart(make_evolution_figure(sessions), use_container_width=True)
         st.divider()
 
-    # --- Export ---
-    st.markdown("#### Export")
-    st.caption("Download all session charts as PNGs in a ZIP file.")
-
+    # ── Export ───────────────────────────────────────────────────────────────
+    st.markdown("#### Export charts")
+    st.caption("Download all session charts as PNGs in a ZIP.")
     if st.button("📦 Generate export ZIP", use_container_width=True):
         with st.spinner("Rendering charts..."):
             try:
                 zip_bytes = export_zip(sessions)
                 st.download_button(
-                    label="⬇️ Download ZIP (PNG charts)",
+                    label="⬇️ Download ZIP",
                     data=zip_bytes,
                     file_name="feelmap_export.zip",
                     mime="application/zip",
