@@ -10,7 +10,7 @@ from utils.vision import (
 
 
 def parse_date_from_filename(filename: str):
-    for fmt in ("%d_%m_%Y", "%d.%m.%Y", "%Y-%m-%d"):
+    for fmt in ("%d_%m_%Y", "%d.%m.%Y", "%Y-%m-%d", "%d.%m.%Y"):
         try:
             dt = datetime.strptime(filename, fmt)
             return dt.strftime("%Y-%m-%d"), dt.strftime("%d %B %Y")
@@ -21,33 +21,32 @@ def parse_date_from_filename(filename: str):
 
 def show():
     st.markdown('<h2 style="margin-bottom:4px">📍 Annotate</h2>', unsafe_allow_html=True)
-    st.caption("Upload your save file to continue, or start fresh for a new semester.")
 
-    # ── Load existing save file ──────────────────────────────────────────────
-    with st.expander("📂 Load existing save file", expanded="sessions" not in st.session_state):
-        uploaded_save = st.file_uploader(
-            "Upload feelmap_sessions.json",
-            type=["json"],
-            key="load_save",
-            help="Upload your save file from a previous session to continue where you left off."
-        )
-        if uploaded_save:
-            try:
-                data = json.load(uploaded_save)
-                sessions = sessions_from_json(data)
-                st.session_state["sessions"] = {s["date"]: s for s in sessions}
-                st.success(f"✅ Loaded {len(sessions)} sessions!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Could not read file: {e}")
+    # ── Step 1: Load save file ───────────────────────────────────────────────
+    st.markdown("**Step 1 — Load your previous data** *(skip if starting fresh)*")
+    uploaded_save = st.file_uploader(
+        "Upload feelmap_sessions.json",
+        type=["json"],
+        key="load_save",
+        label_visibility="collapsed"
+    )
+    if uploaded_save:
+        try:
+            data = json.load(uploaded_save)
+            sessions = sessions_from_json(data)
+            st.session_state["sessions"] = {s["date"]: s for s in sessions}
+            st.success(f"✅ {len(sessions)} sessions loaded — scroll down to see them.")
+        except Exception as e:
+            st.error(f"Could not read file: {e}")
 
     st.divider()
 
-    # ── Upload wheel image ───────────────────────────────────────────────────
-    st.markdown("#### New session")
+    # ── Step 2: Annotate new session ─────────────────────────────────────────
+    st.markdown("**Step 2 — Annotate a new session**")
     uploaded_file = st.file_uploader(
         "Upload wheel image",
         type=["png", "jpg", "jpeg"],
+        label_visibility="collapsed",
         help="Name the file dd_mm_yyyy.png for automatic date detection."
     )
 
@@ -77,6 +76,11 @@ def show():
                 date_str = st.text_input("Enter date manually", placeholder="2026-03-04")
                 if not date_str:
                     return
+
+            # warn if date already exists but don't block
+            existing = st.session_state.get("sessions", {})
+            if date_str in existing:
+                st.warning(f"⚠️ You already have data for {date_str} — saving will overwrite it.")
 
         with col_form:
             st.markdown("#### Mark the dots")
@@ -125,7 +129,7 @@ def show():
                     st.success(f"✅ Saved — {total} dots for {date_str}")
                     st.balloons()
 
-    # ── Saved sessions ───────────────────────────────────────────────────────
+    # ── Step 3: Export ───────────────────────────────────────────────────────
     st.divider()
     sessions = load_sessions_from_state()
 
@@ -135,7 +139,7 @@ def show():
 
     col_hdr, col_export = st.columns([2, 1])
     with col_hdr:
-        st.markdown(f"#### Saved sessions ({len(sessions)})")
+        st.markdown(f"**Step 3 — Export your data** ({len(sessions)} sessions saved)")
     with col_export:
         st.download_button(
             label="⬇️ Export save file",
@@ -144,9 +148,13 @@ def show():
             mime="application/json",
             use_container_width=True,
             type="primary",
-            help="Download and keep this file safe — upload it next time to continue."
+            help="Keep this file on your desktop and upload it next time to continue."
         )
 
+    st.caption("⚠️ Always export before closing the app — your data is not saved automatically.")
+
+    st.divider()
+    st.markdown(f"#### Sessions ({len(sessions)})")
     for s in sessions:
         with st.expander(f"📅 {s['date']} — {s.get('total_dots', '?')} dots"):
             st.json(s, expanded=False)
