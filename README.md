@@ -13,3 +13,56 @@ It's a small tool built for a specific, human purpose: helping reflective educat
 ---
 
 *Made with care for people who care about how their students feel. You know who you are.* 🤍
+
+---
+
+## How it works
+
+The tool is split into two parts:
+
+**1 · Annotate** — run locally by the session annotator
+- Upload a wheel photo (named `dd_mm_yyyy.png`)
+- Fill in the emotion tree by marking which emotions have stickers and how many
+- Save each session, then export everything as a single `feelmap_sessions.json` file
+
+**2 · Analyse** — hosted publicly on Streamlit Cloud
+- Upload the exported `feelmap_sessions.json`
+- Explore the polar chart timelapse week by week
+- Download all charts as a ZIP of PNGs
+
+---
+
+## Run the annotation tool locally
+
+```bash
+git clone https://github.com/yourname/feelmap.git
+cd feelmap
+pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+No API key needed for annotation. Open your browser at `http://localhost:8501`.
+
+---
+
+## Visualise online
+
+👉 **[feelmap.streamlit.app](https://feelmap.streamlit.app)** ← upload your `feelmap_sessions.json` here
+
+---
+
+## Project structure
+
+```
+feelmap/
+├── app.py                  ← entry point
+├── requirements.txt
+├── .env.example            ← copy to .env if using Gemini API
+├── utils/
+│   ├── vision.py           ← session save/load logic
+│   └── emotion_tree.py     ← the full emotion hierarchy
+├── pages/
+│   ├── annotate.py         ← local annotation UI
+│   └── visualize.py        ← hosted visualisation UI
+└── sessions/               ← generated locally, gitignored
+```
