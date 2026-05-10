@@ -140,7 +140,7 @@ def export_zip(sessions: list) -> bytes:
 
 
 def show():
-    st.markdown('<h2 style="margin-bottom:4px">📊 Analyse</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 style="margin-bottom:4px"> Analyse</h2>', unsafe_allow_html=True)
     st.caption("Upload your save file to explore the emotional journey of your cohort.")
 
     sessions = []

@@ -29,7 +29,7 @@ def session_to_counts(session: dict) -> dict:
 
 
 def show():
-    st.markdown('<h2 style="margin-bottom:4px">📍 Annotate</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 style="margin-bottom:4px"> Annotate</h2>', unsafe_allow_html=True)
 
     # ── Step 1: Load save file ───────────────────────────────────────────────
     st.markdown("**Step 1 — Load your previous data** *(skip if starting fresh)*")
