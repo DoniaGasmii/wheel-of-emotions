@@ -291,17 +291,22 @@ def make_bubble(sessions, level):
                             "color": get_color_for_label(lbl, level)})
     if not rows:
         return go.Figure()
+    # normalize bubble sizes relative to global max so they never overlap
+    max_count = max(r["count"] for r in rows) if rows else 1
+    MIN_SIZE, MAX_SIZE = 8, 60
+
     fig = go.Figure()
     emotions = list({r["emotion"] for r in rows})
     for lbl in emotions:
         pts = [r for r in rows if r["emotion"] == lbl]
         counts = [p["count"] for p in pts]
+        sizes = [MIN_SIZE + (c / max_count) * (MAX_SIZE - MIN_SIZE) for c in counts]
         fig.add_trace(go.Scatter(
             x=[p["date"] for p in pts],
             y=[p["emotion"] for p in pts],
             mode="markers",
             marker=dict(
-                size=[c * 8 + 6 for c in counts],
+                size=sizes,
                 color=pts[0]["color"], opacity=0.8,
                 line=dict(color="white", width=1)
             ),
