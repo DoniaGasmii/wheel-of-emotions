@@ -2,11 +2,9 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import json
-import io
-import zipfile
-from PIL import Image
 from utils.emotion_tree import EMOTION_TREE
 from utils.vision import sessions_from_json, load_sessions_from_state
+from utils.export import make_gif, make_zip
 
 # ── Color palette matching the wheel ────────────────────────────────────────
 CORE_COLORS = {
@@ -221,44 +219,6 @@ def make_donut(session):
         title=dict(text=f"Session breakdown — {session['date']}", font=dict(size=14, color="#e0e0e0"), x=0.5)
     )
     return fig
-
-
-# ── GIF export ───────────────────────────────────────────────────────────────
-def make_gif(sessions) -> bytes:
-    frames = []
-    for s in sessions:
-        fig = make_polar(s, f"Session — {s['date']}")
-        img_bytes = fig.to_image(format="png", width=800, height=700, scale=1.5)
-        frame = Image.open(io.BytesIO(img_bytes))
-        frames.append(frame)
-
-    buf = io.BytesIO()
-    frames[0].save(
-        buf, format="GIF",
-        save_all=True,
-        append_images=frames[1:],
-        duration=1200,
-        loop=0,
-    )
-    buf.seek(0)
-    return buf.read()
-
-
-def make_zip(sessions) -> bytes:
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w") as zf:
-        for s in sessions:
-            fig = make_polar(s, f"Session — {s['date']}")
-            zf.writestr(f"polar_{s['date']}.png", fig.to_image(format="png", width=800, height=700, scale=2))
-        if len(sessions) > 1:
-            zf.writestr("stacked_bar.png", make_stacked_bar(sessions).to_image(format="png", width=1000, height=500, scale=2))
-            zf.writestr("lines.png", make_lines(sessions).to_image(format="png", width=1000, height=500, scale=2))
-            zf.writestr("heatmap.png", make_heatmap(sessions).to_image(format="png", width=1000, height=max(600, len(set(
-                e.get("sub_sub") or e.get("sub") or e.get("core")
-                for s in sessions for e in s.get("emotions", [])
-            )) * 22), scale=2))
-    buf.seek(0)
-    return buf.read()
 
 
 # ── Main page ────────────────────────────────────────────────────────────────
