@@ -295,17 +295,19 @@ def make_bubble(sessions, level):
     emotions = list({r["emotion"] for r in rows})
     for lbl in emotions:
         pts = [r for r in rows if r["emotion"] == lbl]
+        counts = [p["count"] for p in pts]
         fig.add_trace(go.Scatter(
             x=[p["date"] for p in pts],
             y=[p["emotion"] for p in pts],
             mode="markers",
             marker=dict(
-                size=[p["count"] * 8 + 6 for p in pts],
+                size=[c * 8 + 6 for c in counts],
                 color=pts[0]["color"], opacity=0.8,
                 line=dict(color="white", width=1)
             ),
+            customdata=counts,
             name=lbl,
-            hovertemplate="<b>%{y}</b> on %{x}: %{marker.size}<extra></extra>",
+            hovertemplate="<b>%{y}</b> on %{x}<br>%{customdata} dots<extra></extra>",
             showlegend=False
         ))
     fig.update_layout(
