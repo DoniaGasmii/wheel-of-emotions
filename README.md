@@ -11,7 +11,7 @@ This tool is open to anyone using emotion wheels in teaching. If you track how y
 ## Usage
 
 Just a browser — visit the hosted app at:
-**https://wheel-of-emotions-cqk8dbrvhgrfgptcqh8s5q.streamlit.app**
+**https://wheel-of-emotions-hum-496.streamlit.app/**
 
 Or run locally:
 ```bash
