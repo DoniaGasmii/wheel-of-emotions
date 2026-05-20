@@ -1,22 +1,7 @@
-"""
-Export utilities using matplotlib — no Chrome/Kaleido needed.
-Two GIF modes:
-  - make_gif_timelapse: week-by-week full polar frames (no text labels)
-  - make_gif_sticker:   sticker-by-sticker animation with spotlight effect
-"""
 import io
 import zipfile
 import numpy as np
 from .emotion_tree import EMOTION_TREE
-
-
-def _lazy_imports():
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
-    from PIL import Image
-    return plt, mpatches, Image
 
 CORE_COLORS = {
     "Happy":     "#e8875a",
@@ -38,8 +23,8 @@ CORE_ANGLES_DEG = {
     "Sad":       145,
 }
 
-BG = "#0d1117"
-GRID = "#1e1e2e"
+BG = "#fdf6f0"
+GRID = "#e8d5c4"
 
 
 def deg_to_rad(deg):
@@ -56,7 +41,6 @@ def get_core_totals(session):
 
 
 def emotion_position(e):
-    """Return (angle_rad, radius, color, label) for an emotion entry."""
     core = e.get("core")
     sub = e.get("sub")
     sub_sub = e.get("sub_sub")
@@ -66,7 +50,6 @@ def emotion_position(e):
     sector = np.radians(50)
     subs = list(EMOTION_TREE.get(core, {}).get("subs", {}).items())
     n = len(subs)
-
     if sub is None:
         return base, 0.4, color, label
     try:
@@ -85,8 +68,17 @@ def emotion_position(e):
     return angle, 1.5, color, label
 
 
-def _base_ax(fig):
-    plt, mpatches, Image = _lazy_imports()
+def _get_mpl():
+    """Lazy-load matplotlib and PIL — only when actually needed."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    from PIL import Image
+    return plt, mpatches, Image
+
+
+def _base_ax(plt, fig):
     ax = fig.add_subplot(111, polar=True, facecolor=BG)
     for core, deg in CORE_ANGLES_DEG.items():
         ax.text(deg_to_rad(deg), 2.3, core, ha="center", va="center",
@@ -99,8 +91,7 @@ def _base_ax(fig):
     return ax
 
 
-def _fig_to_pil(fig):
-    plt, mpatches, Image = _lazy_imports()
+def _fig_to_pil(plt, Image, fig):
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=110, bbox_inches="tight", facecolor=BG)
     plt.close(fig)
@@ -108,33 +99,28 @@ def _fig_to_pil(fig):
     return Image.open(buf).copy()
 
 
-# ── GIF 2: week-by-week timelapse (no text labels) ───────────────────────────
-
-def render_polar_frame(session, figsize=(8, 8)) -> "Image.Image":
+def render_polar_frame(session, figsize=(8, 8)):
+    plt, mpatches, Image = _get_mpl()
     fig = plt.figure(figsize=figsize, facecolor=BG)
-    ax = _base_ax(fig)
-
+    ax = _base_ax(plt, fig)
     for e in session.get("emotions", []):
         count = e.get("count", 0)
         angle, radius, color, _ = emotion_position(e)
         size = min(count * 120 + 60, 600)
         ax.scatter(angle, radius, s=size, color=color, alpha=0.85,
                   zorder=5, edgecolors="white", linewidths=0.8)
-        # NO text label — size speaks for itself
-
     handles = [mpatches.Patch(color=c, label=k) for k, c in CORE_COLORS.items()
                if get_core_totals(session).get(k, 0) > 0]
     ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, -0.08),
-             ncol=4, framealpha=0, labelcolor="white", fontsize=9)
+             ncol=4, framealpha=0, labelcolor="#2d2420", fontsize=9)
     fig.suptitle(f"Session — {session['date']}",
-                color="#e0e0e0", fontsize=13, y=0.97)
-    return _fig_to_pil(fig)
+                color="#2d2420", fontsize=13, y=0.97)
+    return _fig_to_pil(plt, Image, fig)
 
 
-def make_gif_timelapse(sessions, duration_ms=1200) -> bytes:
-    """Week-by-week: one full polar frame per session, no labels."""
+def make_gif_timelapse(sessions, duration_ms=1200):
+    plt, mpatches, Image = _get_mpl()
     frames = [render_polar_frame(s) for s in sessions]
-    # hold last frame longer
     durations = [duration_ms] * len(frames)
     durations[-1] = duration_ms * 3
     buf = io.BytesIO()
@@ -144,47 +130,36 @@ def make_gif_timelapse(sessions, duration_ms=1200) -> bytes:
     return buf.read()
 
 
-# keep old name as alias
-def make_gif(sessions, duration_ms=1200) -> bytes:
+def make_gif(sessions, duration_ms=1200):
     return make_gif_timelapse(sessions, duration_ms)
 
 
-# ── GIF 1: sticker-by-sticker with spotlight ─────────────────────────────────
-
-def _render_sticker_frame(placed, active_idx, date, figsize=(8, 8)) -> "Image.Image":
-    """
-    placed: list of (angle, radius, color, label, count) — all emotions placed so far
-    active_idx: index of the currently active (spotlight) emotion
-    """
+def _render_sticker_frame(session_date, placed, active_idx, figsize=(8, 8)):
+    plt, mpatches, Image = _get_mpl()
     fig = plt.figure(figsize=figsize, facecolor=BG)
-    ax = _base_ax(fig)
-
+    ax = _base_ax(plt, fig)
     for i, (angle, radius, color, label, count) in enumerate(placed):
         is_active = (i == active_idx)
         size = min(count * 120 + 60, 600)
-
         if is_active:
-            # spotlight: full opacity, white edge, big label
             ax.scatter(angle, radius, s=size, color=color, alpha=1.0,
                       zorder=10, edgecolors="white", linewidths=2.0)
             ax.text(angle, radius + 0.22, label,
-                   ha="center", va="bottom", color="white",
+                   ha="center", va="bottom", color="#2d2420",
                    fontsize=13, fontweight="bold", zorder=11,
                    bbox=dict(boxstyle="round,pad=0.3", facecolor=BG,
-                            edgecolor=color, alpha=0.85))
+                            edgecolor=color, alpha=0.9))
         else:
-            # faded: lower opacity, no label
-            ax.scatter(angle, radius, s=size, color=color, alpha=0.35,
+            ax.scatter(angle, radius, s=size, color=color, alpha=0.3,
                       zorder=5, edgecolors="white", linewidths=0.5)
+    fig.suptitle(session_date, color="#2d2420", fontsize=15, fontweight="bold", y=0.97)
+    return _fig_to_pil(plt, Image, fig)
 
-    fig.suptitle(date, color="#e0e0e0", fontsize=15, fontweight="bold", y=0.97)
-    return _fig_to_pil(fig)
 
-
-def _render_week_final(placed, date, figsize=(8, 8)) -> "Image.Image":
-    """Final frame for a week: all bubbles visible, no spotlight, no labels."""
+def _render_week_final(session_date, placed, figsize=(8, 8)):
+    plt, mpatches, Image = _get_mpl()
     fig = plt.figure(figsize=figsize, facecolor=BG)
-    ax = _base_ax(fig)
+    ax = _base_ax(plt, fig)
     for angle, radius, color, label, count in placed:
         size = min(count * 120 + 60, 600)
         ax.scatter(angle, radius, s=size, color=color, alpha=0.85,
@@ -192,49 +167,33 @@ def _render_week_final(placed, date, figsize=(8, 8)) -> "Image.Image":
     handles = [mpatches.Patch(color=c, label=k) for k, c in CORE_COLORS.items()
                if any(pc == c for _, _, pc, _, _ in placed)]
     ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, -0.08),
-             ncol=4, framealpha=0, labelcolor="white", fontsize=9)
-    fig.suptitle(date, color="#e0e0e0", fontsize=15, fontweight="bold", y=0.97)
-    return _fig_to_pil(fig)
+             ncol=4, framealpha=0, labelcolor="#2d2420", fontsize=9)
+    fig.suptitle(session_date, color="#2d2420", fontsize=15, fontweight="bold", y=0.97)
+    return _fig_to_pil(plt, Image, fig)
 
 
-def make_gif_sticker(sessions, frame_ms=400, pause_ms=1800) -> bytes:
-    """
-    Sticker-by-sticker animation:
-    - Each emotion appears one by one with spotlight
-    - If count > 1, bubble grows step by step
-    - Previous emotions fade
-    - After all emotions for a week: hold the complete frame, then next week
-    """
+def make_gif_sticker(sessions, frame_ms=400, pause_ms=1800):
     frames = []
     durations = []
-
     for session in sessions:
         emotions = session.get("emotions", [])
         date = session.get("date", "")
-        placed = []  # (angle, radius, color, label, current_count)
-
+        placed = []
         for ei, e in enumerate(emotions):
             angle, radius, color, label = emotion_position(e)
             total_count = e.get("count", 0)
-
-            # grow bubble count by count
             for step in range(1, total_count + 1):
-                # update or add this emotion's bubble
                 entry = (angle, radius, color, label, step)
                 if ei < len(placed):
                     placed[ei] = entry
                 else:
                     placed.append(entry)
-
-                frame = _render_sticker_frame(placed, ei, date)
+                frame = _render_sticker_frame(date, placed, ei)
                 frames.append(frame)
                 durations.append(frame_ms)
-
-        # hold final complete frame for this week
-        final = _render_week_final(placed, date)
+        final = _render_week_final(date, placed)
         frames.append(final)
         durations.append(pause_ms)
-
     buf = io.BytesIO()
     frames[0].save(buf, format="GIF", save_all=True,
                   append_images=frames[1:], duration=durations, loop=0)
@@ -242,9 +201,8 @@ def make_gif_sticker(sessions, frame_ms=400, pause_ms=1800) -> bytes:
     return buf.read()
 
 
-# ── ZIP export ────────────────────────────────────────────────────────────────
-
-def make_zip(sessions) -> bytes:
+def make_zip(sessions):
+    plt, mpatches, Image = _get_mpl()
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
         for s in sessions:
