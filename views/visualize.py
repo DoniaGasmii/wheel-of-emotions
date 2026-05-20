@@ -5,7 +5,6 @@ import json
 import io
 import numpy as np
 from datetime import datetime
-from PIL import Image
 from utils.emotion_tree import EMOTION_TREE
 from utils.vision import sessions_from_json, load_sessions_from_state
 
@@ -331,22 +330,21 @@ def make_bubble(sessions, level):
 def make_wordcloud(session, level):
     try:
         from wordcloud import WordCloud
-        import matplotlib
-        matplotlib.use("Agg")
+        import matplotlib; matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         agg = get_emotions_at_level(session, level)
         if not agg:
             return None
         wc = WordCloud(
-            width=800, height=400, background_color="#0d1117",
+            width=800, height=400, background_color="#fdf6f0",
             colormap="YlOrRd", prefer_horizontal=0.8,
             max_words=60
         ).generate_from_frequencies(agg)
-        fig, ax = plt.subplots(figsize=(10, 5), facecolor="#0d1117")
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor="#fdf6f0")
         ax.imshow(wc, interpolation="bilinear")
         ax.axis("off")
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight", facecolor="#0d1117")
+        fig.savefig(buf, format="png", bbox_inches="tight", facecolor="#fdf6f0")
         plt.close(fig)
         buf.seek(0)
         return buf
@@ -388,7 +386,7 @@ def make_photo_gif(uploaded_files, duration_ms=1200) -> bytes:
 
 def show():
     inject_css()
-    st.markdown('<h2 style="margin-bottom:4px">Visualize</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 style="margin-bottom:4px">Analyse</h2>', unsafe_allow_html=True)
     st.caption("Upload your save file to explore the emotional journey of your cohort.")
 
     uploaded = st.file_uploader("Upload feelmap_sessions.json", type=["json"],

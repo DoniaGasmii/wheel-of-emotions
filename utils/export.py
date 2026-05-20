@@ -7,12 +7,16 @@ Two GIF modes:
 import io
 import zipfile
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from PIL import Image
 from utils.emotion_tree import EMOTION_TREE
+
+
+def _lazy_imports():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    from PIL import Image
+    return plt, mpatches, Image
 
 CORE_COLORS = {
     "Happy":     "#e8875a",
@@ -82,6 +86,7 @@ def emotion_position(e):
 
 
 def _base_ax(fig):
+    plt, mpatches, Image = _lazy_imports()
     ax = fig.add_subplot(111, polar=True, facecolor=BG)
     for core, deg in CORE_ANGLES_DEG.items():
         ax.text(deg_to_rad(deg), 2.3, core, ha="center", va="center",
@@ -95,6 +100,7 @@ def _base_ax(fig):
 
 
 def _fig_to_pil(fig):
+    plt, mpatches, Image = _lazy_imports()
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=110, bbox_inches="tight", facecolor=BG)
     plt.close(fig)
@@ -104,7 +110,7 @@ def _fig_to_pil(fig):
 
 # ── GIF 2: week-by-week timelapse (no text labels) ───────────────────────────
 
-def render_polar_frame(session, figsize=(8, 8)) -> Image.Image:
+def render_polar_frame(session, figsize=(8, 8)) -> "Image.Image":
     fig = plt.figure(figsize=figsize, facecolor=BG)
     ax = _base_ax(fig)
 
@@ -145,7 +151,7 @@ def make_gif(sessions, duration_ms=1200) -> bytes:
 
 # ── GIF 1: sticker-by-sticker with spotlight ─────────────────────────────────
 
-def _render_sticker_frame(placed, active_idx, date, figsize=(8, 8)) -> Image.Image:
+def _render_sticker_frame(placed, active_idx, date, figsize=(8, 8)) -> "Image.Image":
     """
     placed: list of (angle, radius, color, label, count) — all emotions placed so far
     active_idx: index of the currently active (spotlight) emotion
@@ -175,7 +181,7 @@ def _render_sticker_frame(placed, active_idx, date, figsize=(8, 8)) -> Image.Ima
     return _fig_to_pil(fig)
 
 
-def _render_week_final(placed, date, figsize=(8, 8)) -> Image.Image:
+def _render_week_final(placed, date, figsize=(8, 8)) -> "Image.Image":
     """Final frame for a week: all bubbles visible, no spotlight, no labels."""
     fig = plt.figure(figsize=figsize, facecolor=BG)
     ax = _base_ax(fig)
