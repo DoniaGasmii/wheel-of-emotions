@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="feelmap",
-    page_icon="🌈",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -15,20 +15,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Init page state ──────────────────────────────────────────────────────────
+#  Init page state 
 if "page" not in st.session_state:
     st.session_state["page"] = "home"
 
-# ── Sidebar nav ──────────────────────────────────────────────────────────────
-st.sidebar.markdown("### 🌈 feelmap")
+#  Sidebar nav 
+st.sidebar.markdown("###  feelmap")
 st.sidebar.caption("emotion wheel tracker")
 st.sidebar.divider()
 
 from utils.tree_state import is_custom
 
 pages = {
-    "home":          "🏠 Home",
-    "wheel_builder": "✏️ Custom wheel",
+    "home":          "Home",
+    "wheel_builder": "Custom wheel",
     "annotate":      "1 · Annotate",
     "visualize":     "2 · Visualise",
     "analyse":       "3 · Analyse",
@@ -47,14 +47,14 @@ for key, label in pages.items():
         break
 
 if is_custom():
-    st.sidebar.success("Custom wheel active ✅")
+    st.sidebar.success("Custom wheel active")
 else:
     st.sidebar.info("Using default wheel")
 
 st.sidebar.divider()
-st.sidebar.caption("Built with care for people who care about how their students feel. 🤍")
+st.sidebar.caption("Built with care for people who care about how their students feel.")
 
-# ── Route to page ────────────────────────────────────────────────────────────
+#  Route to page 
 page = st.session_state["page"]
 
 if page == "home":
