@@ -1,4 +1,5 @@
 import streamlit as st
+from views.home import inject_css
 import plotly.graph_objects as go
 import json
 import io
@@ -7,7 +8,7 @@ from datetime import datetime
 from PIL import Image
 from utils.emotion_tree import EMOTION_TREE
 from utils.vision import sessions_from_json, load_sessions_from_state
-from utils.export import make_gif, make_zip, render_polar_frame
+from utils.export import make_gif_timelapse, make_gif_sticker, make_zip, render_polar_frame
 
 CORE_COLORS = {
     "Happy":     "#e8875a",
@@ -23,7 +24,7 @@ POSITIVE = {"Happy", "Surprised"}
 NEGATIVE = {"Bad", "Fearful", "Angry", "Disgusted", "Sad"}
 
 
-# ── Granularity helpers ──────────────────────────────────────────────────────
+#  Granularity helpers 
 
 def get_label(e):
     return e.get("sub_sub") or e.get("sub") or e.get("core")
@@ -63,7 +64,7 @@ def get_core_totals(session):
     return totals
 
 
-# ── Chart 1: Polar wheel ─────────────────────────────────────────────────────
+#  Chart 1: Polar wheel 
 
 CORE_ANGLES = {
     "Happy": 180, "Surprised": 270, "Bad": 315,
@@ -109,33 +110,33 @@ def make_polar(session, title=""):
         fig.add_trace(go.Scatterpolar(
             r=d["radii"], theta=d["angles"], mode="markers+text",
             marker=dict(size=d["sizes"], color=d["color"], opacity=0.85,
-                       line=dict(color="white", width=1.5)),
+                       line=dict(color="#2d2420", width=1.5)),
             text=d["texts"], textposition="top center",
-            textfont=dict(size=9, color="white"),
+            textfont=dict(size=9, color="#2d2420"),
             name=core, hovertemplate="<b>%{text}</b><extra></extra>",
         ))
     fig.update_layout(
         polar=dict(
-            bgcolor="#0d1117",
+            bgcolor="#fdf6f0",
             radialaxis=dict(visible=False, range=[0, 2.0]),
             angularaxis=dict(
                 tickmode="array", tickvals=list(CORE_ANGLES.values()),
                 ticktext=list(CORE_ANGLES.keys()),
-                tickfont=dict(size=13, color="#aaa"),
+                tickfont=dict(size=13, color="#7a5c4a"),
                 direction="clockwise", rotation=90,
-                gridcolor="#1e1e2e", linecolor="#2a2a3e",
+                gridcolor="#e8d5c4", linecolor="#e8d5c4",
             ),
         ),
-        paper_bgcolor="#0d1117", font=dict(color="white"),
-        title=dict(text=title, font=dict(size=15, color="#e0e0e0"), x=0.5),
+        paper_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
+        title=dict(text=title, font=dict(size=15, color="#2d2420"), x=0.5),
         showlegend=True,
-        legend=dict(bgcolor="#0d1117", font=dict(color="#ccc"), bordercolor="#333", borderwidth=1),
+        legend=dict(bgcolor="#fdf6f0", font=dict(color="#7a5c4a"), bordercolor="#e8d5c4", borderwidth=1),
         margin=dict(t=60, b=40, l=60, r=60), height=560,
     )
     return fig
 
 
-# ── Chart 2: Stacked bar ─────────────────────────────────────────────────────
+#  Chart 2: Stacked bar 
 
 def make_stacked_bar(sessions, level):
     dates = [s["date"] for s in sessions]
@@ -153,18 +154,18 @@ def make_stacked_bar(sessions, level):
             hovertemplate=f"<b>{lbl}</b>: %{{y}}<extra></extra>"
         ))
     fig.update_layout(
-        barmode="stack", paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
-        font=dict(color="white"),
-        xaxis=dict(gridcolor="#1e1e2e", color="#aaa"),
-        yaxis=dict(gridcolor="#1e1e2e", color="#aaa", title="Dot count"),
-        legend=dict(bgcolor="#0d1117", bordercolor="#333", borderwidth=1),
+        barmode="stack", paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0",
+        font=dict(color="#2d2420"),
+        xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Dot count"),
+        legend=dict(bgcolor="#fdf6f0", bordercolor="#e8d5c4", borderwidth=1),
         height=450, margin=dict(t=30, b=40),
-        title=dict(text=f"Emotion distribution ({level})", font=dict(size=14, color="#e0e0e0"), x=0.5)
+        title=dict(text=f"Emotion distribution ({level})", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
 
-# ── Chart 3: Line trends ─────────────────────────────────────────────────────
+#  Chart 3: Line trends 
 
 def make_lines(sessions, level):
     dates = [s["date"] for s in sessions]
@@ -183,17 +184,17 @@ def make_lines(sessions, level):
             hovertemplate=f"<b>{lbl}</b>: %{{y}}<extra></extra>"
         ))
     fig.update_layout(
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117", font=dict(color="white"),
-        xaxis=dict(gridcolor="#1e1e2e", color="#aaa"),
-        yaxis=dict(gridcolor="#1e1e2e", color="#aaa", title="Dot count"),
-        legend=dict(bgcolor="#0d1117", bordercolor="#333", borderwidth=1),
+        paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
+        xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Dot count"),
+        legend=dict(bgcolor="#fdf6f0", bordercolor="#e8d5c4", borderwidth=1),
         height=430, margin=dict(t=30, b=40),
-        title=dict(text=f"Emotion trends ({level})", font=dict(size=14, color="#e0e0e0"), x=0.5)
+        title=dict(text=f"Emotion trends ({level})", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
 
-# ── Chart 4: Heatmap ─────────────────────────────────────────────────────────
+#  Chart 4: Heatmap 
 
 def make_heatmap(sessions, level):
     dates = [s["date"] for s in sessions]
@@ -210,18 +211,18 @@ def make_heatmap(sessions, level):
         showscale=True,
     ))
     fig.update_layout(
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
-        font=dict(color="white", size=11),
-        xaxis=dict(color="#aaa"),
-        yaxis=dict(color="#aaa", autorange="reversed"),
+        paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0",
+        font=dict(color="#2d2420", size=11),
+        xaxis=dict(color="#7a5c4a"),
+        yaxis=dict(color="#7a5c4a", autorange="reversed"),
         height=max(350, len(all_labels) * 28),
         margin=dict(t=30, b=40, l=160, r=40),
-        title=dict(text=f"Emotion heatmap ({level})", font=dict(size=14, color="#e0e0e0"), x=0.5)
+        title=dict(text=f"Emotion heatmap ({level})", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
 
-# ── Chart 5: Radar overlay ───────────────────────────────────────────────────
+#  Chart 5: Radar overlay 
 
 def make_radar(sessions):
     cores = list(CORE_COLORS.keys())
@@ -237,20 +238,20 @@ def make_radar(sessions):
         ))
     fig.update_layout(
         polar=dict(
-            bgcolor="#0d1117",
-            radialaxis=dict(visible=True, color="#555", gridcolor="#1e1e2e"),
-            angularaxis=dict(color="#aaa", gridcolor="#1e1e2e"),
+            bgcolor="#fdf6f0",
+            radialaxis=dict(visible=True, color="#555", gridcolor="#e8d5c4"),
+            angularaxis=dict(color="#7a5c4a", gridcolor="#e8d5c4"),
         ),
-        paper_bgcolor="#0d1117", font=dict(color="white"),
+        paper_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
         showlegend=True,
-        legend=dict(bgcolor="#0d1117", font=dict(color="#ccc"), bordercolor="#333", borderwidth=1),
+        legend=dict(bgcolor="#fdf6f0", font=dict(color="#7a5c4a"), bordercolor="#e8d5c4", borderwidth=1),
         height=520, margin=dict(t=40, b=40),
-        title=dict(text="Emotion radar — all sessions overlaid", font=dict(size=14, color="#e0e0e0"), x=0.5)
+        title=dict(text="Emotion radar — all sessions overlaid", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
 
-# ── Chart 6: Positive vs Negative ratio ──────────────────────────────────────
+#  Chart 6: Positive vs Negative ratio 
 
 def make_posneg(sessions):
     dates = [s["date"] for s in sessions]
@@ -269,17 +270,17 @@ def make_posneg(sessions):
         fill="toself", fillcolor="rgba(232,135,90,0.08)",
         line=dict(color="rgba(0,0,0,0)"), showlegend=False, hoverinfo="skip"))
     fig.update_layout(
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117", font=dict(color="white"),
-        xaxis=dict(gridcolor="#1e1e2e", color="#aaa"),
-        yaxis=dict(gridcolor="#1e1e2e", color="#aaa", title="Dot count"),
-        legend=dict(bgcolor="#0d1117", bordercolor="#333", borderwidth=1),
+        paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
+        xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Dot count"),
+        legend=dict(bgcolor="#fdf6f0", bordercolor="#e8d5c4", borderwidth=1),
         height=400, margin=dict(t=30, b=40),
-        title=dict(text="Positive vs challenging emotions", font=dict(size=14, color="#e0e0e0"), x=0.5)
+        title=dict(text="Positive vs challenging emotions", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
 
-# ── Chart 7: Bubble timeline ─────────────────────────────────────────────────
+#  Chart 7: Bubble timeline 
 
 def make_bubble(sessions, level):
     rows = []
@@ -308,7 +309,7 @@ def make_bubble(sessions, level):
             marker=dict(
                 size=sizes,
                 color=pts[0]["color"], opacity=0.8,
-                line=dict(color="white", width=1)
+                line=dict(color="#2d2420", width=1)
             ),
             customdata=counts,
             name=lbl,
@@ -316,17 +317,17 @@ def make_bubble(sessions, level):
             showlegend=False
         ))
     fig.update_layout(
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117", font=dict(color="white"),
-        xaxis=dict(gridcolor="#1e1e2e", color="#aaa", title="Session"),
-        yaxis=dict(gridcolor="#1e1e2e", color="#aaa", autorange="reversed"),
+        paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
+        xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Session"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", autorange="reversed"),
         height=max(400, len(emotions) * 28),
         margin=dict(t=30, b=40, l=160, r=40),
-        title=dict(text=f"Bubble timeline ({level})", font=dict(size=14, color="#e0e0e0"), x=0.5)
+        title=dict(text=f"Bubble timeline ({level})", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
 
-# ── Chart 8: Word cloud ──────────────────────────────────────────────────────
+#  Chart 8: Word cloud 
 
 def make_wordcloud(session, level):
     try:
@@ -354,7 +355,7 @@ def make_wordcloud(session, level):
         return None
 
 
-# ── Photo timelapse GIF ───────────────────────────────────────────────────────
+#  Photo timelapse GIF 
 
 def parse_date_from_name(name):
     for fmt in ("%d_%m_%Y", "%d.%m.%Y", "%Y-%m-%d"):
@@ -384,10 +385,11 @@ def make_photo_gif(uploaded_files, duration_ms=1200) -> bytes:
     return buf.read()
 
 
-# ── Main page ────────────────────────────────────────────────────────────────
+#  Main page 
 
 def show():
-    st.markdown('<h2 style="margin-bottom:4px">📊 Analyse</h2>', unsafe_allow_html=True)
+    inject_css()
+    st.markdown('<h2 style="margin-bottom:4px">Analyse</h2>', unsafe_allow_html=True)
     st.caption("Upload your save file to explore the emotional journey of your cohort.")
 
     uploaded = st.file_uploader("Upload feelmap_sessions.json", type=["json"],
@@ -397,7 +399,7 @@ def show():
         try:
             data = json.load(uploaded)
             sessions = sessions_from_json(data)
-            st.success(f"✅ {len(sessions)} sessions loaded")
+            st.success(f" {len(sessions)} sessions loaded")
         except Exception as e:
             st.error(f"Could not read file: {e}")
             return
@@ -412,7 +414,7 @@ def show():
 
     st.divider()
 
-    # ── Granularity toggle ───────────────────────────────────────────────────
+    #  Granularity toggle 
     level = st.radio(
         "Granularity",
         ["Core", "Sub", "Sub-sub"],
@@ -422,10 +424,10 @@ def show():
 
     st.divider()
 
-    # ── Viz tabs ─────────────────────────────────────────────────────────────
-    tabs = st.tabs(["🌀 Polar", "🕸 Radar", "➕/➖ Pos vs Neg",
-                    "📊 Stacked bar", "📈 Lines", "🔥 Heatmap",
-                    "🫧 Bubbles", "☁️ Word cloud"])
+    #  Viz tabs 
+    tabs = st.tabs(["Polar wheel", "Radar", "Positive vs negative",
+                    "Stacked bar", "Lines", "Heatmap",
+                    "Bubbles", "Word cloud"])
 
     with tabs[0]:
         dates = [s["date"] for s in sessions]
@@ -442,7 +444,7 @@ def show():
             for core, cnt in sorted(totals.items(), key=lambda x: -x[1]):
                 if cnt > 0:
                     pct = int(cnt / total_dots * 100)
-                    st.markdown(f"<span style='color:{CORE_COLORS[core]}'>●</span> **{core}** — {cnt} ({pct}%)",
+                    st.markdown(f"<span style='color:{CORE_COLORS[core]}'></span> **{core}** — {cnt} ({pct}%)",
                                unsafe_allow_html=True)
 
     with tabs[1]:
@@ -475,26 +477,42 @@ def show():
 
     st.divider()
 
-    # ── Export ───────────────────────────────────────────────────────────────
+    #  Export 
     st.markdown("#### Export")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("**🎞 Data GIF** — animated polar wheel")
-        speed = st.slider("Frame duration (ms)", 600, 3000, 1200, 200, key="gif_speed")
-        if st.button("Generate data GIF", use_container_width=True):
-            with st.spinner("Rendering..."):
+        st.markdown("**Sticker by sticker**")
+        st.caption("Emotions appear one by one, spotlight on the active one.")
+        frame_ms = st.slider("Frame speed (ms)", 200, 800, 400, 100, key="sticker_speed")
+        pause_ms = st.slider("Pause between weeks (ms)", 800, 3000, 1800, 200, key="sticker_pause")
+        if st.button("Generate sticker GIF", use_container_width=True):
+            with st.spinner("Rendering frames — this takes a moment..."):
                 try:
-                    gif = make_gif(sessions, duration_ms=speed)
-                    st.download_button("⬇️ Download GIF", data=gif,
-                        file_name="feelmap_timelapse.gif", mime="image/gif",
+                    gif = make_gif_sticker(sessions, frame_ms=frame_ms, pause_ms=pause_ms)
+                    st.download_button(" Download sticker GIF", data=gif,
+                        file_name="feelmap_sticker.gif", mime="image/gif",
                         use_container_width=True, type="primary")
                 except Exception as e:
                     st.error(f"Failed: {e}")
 
     with col2:
-        st.markdown("**📸 Photo GIF** — original wheel photos")
+        st.markdown("**Week timelapse**")
+        st.caption("One frame per session — best for comparing weeks side by side.")
+        speed = st.slider("Frame duration (ms)", 600, 3000, 1200, 200, key="gif_speed")
+        if st.button("Generate timelapse GIF", use_container_width=True):
+            with st.spinner("Rendering..."):
+                try:
+                    gif = make_gif_timelapse(sessions, duration_ms=speed)
+                    st.download_button(" Download timelapse GIF", data=gif,
+                        file_name="feelmap_timelapse.gif", mime="image/gif",
+                        use_container_width=True, type="primary")
+                except Exception as e:
+                    st.error(f"Failed: {e}")
+
+    with col3:
+        st.markdown("**Photo GIF** — original wheel photos")
         photos = st.file_uploader("Upload wheel photos (dd_mm_yyyy.png)",
             type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="photo_upload")
         photo_speed = st.slider("Frame duration (ms)", 600, 3000, 1500, 200, key="photo_speed")
@@ -502,19 +520,19 @@ def show():
             with st.spinner("Assembling..."):
                 try:
                     gif = make_photo_gif(photos, duration_ms=photo_speed)
-                    st.download_button("⬇️ Download photo GIF", data=gif,
+                    st.download_button(" Download photo GIF", data=gif,
                         file_name="feelmap_photos.gif", mime="image/gif",
                         use_container_width=True, type="primary")
                 except Exception as e:
                     st.error(f"Failed: {e}")
 
     with col3:
-        st.markdown("**📦 ZIP** — all polar charts as PNG")
+        st.markdown("**ZIP** — all polar charts as PNG")
         if st.button("Generate ZIP", use_container_width=True):
             with st.spinner("Rendering..."):
                 try:
                     z = make_zip(sessions)
-                    st.download_button("⬇️ Download ZIP", data=z,
+                    st.download_button(" Download ZIP", data=z,
                         file_name="feelmap_export.zip", mime="application/zip",
                         use_container_width=True, type="primary")
                 except Exception as e:
