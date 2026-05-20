@@ -7,7 +7,7 @@ Two GIF modes:
 import io
 import zipfile
 import numpy as np
-from utils.emotion_tree import EMOTION_TREE
+from .emotion_tree import EMOTION_TREE
 
 
 def _lazy_imports():

@@ -3,7 +3,7 @@ Active emotion tree resolver.
 Returns either the default hardcoded tree or the user's custom tree from session_state.
 """
 import streamlit as st
-from utils.emotion_tree import EMOTION_TREE as DEFAULT_TREE
+from .emotion_tree import EMOTION_TREE as DEFAULT_TREE
 
 
 def get_active_tree() -> dict:
