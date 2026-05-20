@@ -56,7 +56,7 @@ else:
     st.sidebar.info("Using default wheel")
 
 st.sidebar.divider()
-st.sidebar.caption("Built with care for people who care about how their students feel.")
+st.sidebar.caption("Built with ❤️ for people who care about how their students feel.")
 
 #  Route to page 
 page = st.session_state["page"]
