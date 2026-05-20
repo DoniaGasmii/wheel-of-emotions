@@ -8,7 +8,6 @@ from datetime import datetime
 from PIL import Image
 from utils.emotion_tree import EMOTION_TREE
 from utils.vision import sessions_from_json, load_sessions_from_state
-from utils.export import make_gif_timelapse, make_gif_sticker, make_zip, render_polar_frame
 
 CORE_COLORS = {
     "Happy":     "#e8875a",
@@ -389,7 +388,7 @@ def make_photo_gif(uploaded_files, duration_ms=1200) -> bytes:
 
 def show():
     inject_css()
-    st.markdown('<h2 style="margin-bottom:4px">Analyse</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 style="margin-bottom:4px">Visualize</h2>', unsafe_allow_html=True)
     st.caption("Upload your save file to explore the emotional journey of your cohort.")
 
     uploaded = st.file_uploader("Upload feelmap_sessions.json", type=["json"],
@@ -490,6 +489,7 @@ def show():
         if st.button("Generate sticker GIF", use_container_width=True):
             with st.spinner("Rendering frames — this takes a moment..."):
                 try:
+                    from utils.export import make_gif_sticker
                     gif = make_gif_sticker(sessions, frame_ms=frame_ms, pause_ms=pause_ms)
                     st.download_button(" Download sticker GIF", data=gif,
                         file_name="feelmap_sticker.gif", mime="image/gif",
@@ -504,6 +504,7 @@ def show():
         if st.button("Generate timelapse GIF", use_container_width=True):
             with st.spinner("Rendering..."):
                 try:
+                    from utils.export import make_gif_timelapse
                     gif = make_gif_timelapse(sessions, duration_ms=speed)
                     st.download_button(" Download timelapse GIF", data=gif,
                         file_name="feelmap_timelapse.gif", mime="image/gif",
@@ -531,6 +532,7 @@ def show():
         if st.button("Generate ZIP", use_container_width=True):
             with st.spinner("Rendering..."):
                 try:
+                    from utils.export import make_zip
                     z = make_zip(sessions)
                     st.download_button(" Download ZIP", data=z,
                         file_name="feelmap_export.zip", mime="application/zip",
