@@ -1391,6 +1391,534 @@
           "count": 2
         }
       ]
+    },
+    {
+      "date": "2026-04-22",
+      "total_dots": 59,
+      "emotions": [
+        {
+          "core": "Happy",
+          "sub": null,
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Playful",
+          "sub_sub": null,
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": null,
+          "count": 3
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Free",
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Joyful",
+          "count": 6
+        },
+        {
+          "core": "Happy",
+          "sub": "Interested",
+          "sub_sub": null,
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Interested",
+          "sub_sub": "Curious",
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Interested",
+          "sub_sub": "Inquisitive",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Proud",
+          "sub_sub": null,
+          "count": 4
+        },
+        {
+          "core": "Happy",
+          "sub": "Proud",
+          "sub_sub": "Confident",
+          "count": 7
+        },
+        {
+          "core": "Happy",
+          "sub": "Accepted",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Powerful",
+          "sub_sub": "Courageous",
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Peaceful",
+          "sub_sub": null,
+          "count": 6
+        },
+        {
+          "core": "Happy",
+          "sub": "Peaceful",
+          "sub_sub": "Thankful",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Trusting",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Optimistic",
+          "sub_sub": "Inspired",
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Startled",
+          "sub_sub": "Shocked",
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Amazed",
+          "sub_sub": "Astonished",
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Excited",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": null,
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": "Pressured",
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": "Overwhelmed",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": "Out of control",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": null,
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": "Sleepy",
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": "Unfocused",
+          "count": 2
+        },
+        {
+          "core": "Sad",
+          "sub": "Guilty",
+          "sub_sub": null,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-06",
+      "total_dots": 44,
+      "emotions": [
+        {
+          "core": "Happy",
+          "sub": "Playful",
+          "sub_sub": "Cheeky",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Joyful",
+          "count": 3
+        },
+        {
+          "core": "Happy",
+          "sub": "Interested",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Interested",
+          "sub_sub": "Curious",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Proud",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Proud",
+          "sub_sub": "Successful",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Proud",
+          "sub_sub": "Confident",
+          "count": 4
+        },
+        {
+          "core": "Happy",
+          "sub": "Accepted",
+          "sub_sub": "Respected",
+          "count": 4
+        },
+        {
+          "core": "Happy",
+          "sub": "Powerful",
+          "sub_sub": "Creative",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Peaceful",
+          "sub_sub": null,
+          "count": 5
+        },
+        {
+          "core": "Surprised",
+          "sub": "Confused",
+          "sub_sub": "Perplexed",
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Excited",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Bored",
+          "sub_sub": null,
+          "count": 3
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": "Pressured",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": "Rushed",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": "Overwhelmed",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Angry",
+          "sub": "Frustrated",
+          "sub_sub": null,
+          "count": 3
+        },
+        {
+          "core": "Angry",
+          "sub": "Frustrated",
+          "sub_sub": "Annoyed",
+          "count": 2
+        },
+        {
+          "core": "Angry",
+          "sub": "Critical",
+          "sub_sub": "Sceptical",
+          "count": 1
+        },
+        {
+          "core": "Sad",
+          "sub": "Despair",
+          "sub_sub": "Powerless",
+          "count": 1
+        },
+        {
+          "core": "Sad",
+          "sub": "Depressed",
+          "sub_sub": null,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-13",
+      "total_dots": 30,
+      "emotions": [
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Free",
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Joyful",
+          "count": 4
+        },
+        {
+          "core": "Happy",
+          "sub": "Accepted",
+          "sub_sub": "Respected",
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Powerful",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Peaceful",
+          "sub_sub": null,
+          "count": 2
+        },
+        {
+          "core": "Happy",
+          "sub": "Peaceful",
+          "sub_sub": "Thankful",
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Confused",
+          "sub_sub": "Perplexed",
+          "count": 2
+        },
+        {
+          "core": "Surprised",
+          "sub": "Excited",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": null,
+          "count": 4
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": "Rushed",
+          "count": 4
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": null,
+          "count": 3
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": "Unfocused",
+          "count": 1
+        },
+        {
+          "core": "Fearful",
+          "sub": "Scared",
+          "sub_sub": "Helpless",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "date": "2026-05-20",
+      "total_dots": 26,
+      "emotions": [
+        {
+          "core": "Happy",
+          "sub": null,
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Playful",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Free",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Content",
+          "sub_sub": "Joyful",
+          "count": 3
+        },
+        {
+          "core": "Happy",
+          "sub": "Proud",
+          "sub_sub": "Confident",
+          "count": 3
+        },
+        {
+          "core": "Happy",
+          "sub": "Powerful",
+          "sub_sub": "Creative",
+          "count": 1
+        },
+        {
+          "core": "Happy",
+          "sub": "Peaceful",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Excited",
+          "sub_sub": "Eager",
+          "count": 1
+        },
+        {
+          "core": "Surprised",
+          "sub": "Excited",
+          "sub_sub": "Energetic",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Bored",
+          "sub_sub": null,
+          "count": 3
+        },
+        {
+          "core": "Bad",
+          "sub": "Busy",
+          "sub_sub": "Rushed",
+          "count": 2
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Stressed",
+          "sub_sub": "Out of control",
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Bad",
+          "sub": "Tired",
+          "sub_sub": "Unfocused",
+          "count": 1
+        },
+        {
+          "core": "Fearful",
+          "sub": "Scared",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Angry",
+          "sub": "Frustrated",
+          "sub_sub": null,
+          "count": 1
+        },
+        {
+          "core": "Sad",
+          "sub": "Lonely",
+          "sub_sub": null,
+          "count": 1
+        }
+      ]
     }
   ]
 }
