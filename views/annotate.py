@@ -1,8 +1,9 @@
 import streamlit as st
+from .home import inject_css
 import json
 from datetime import datetime
 from pathlib import Path
-from utils.emotion_tree import EMOTION_TREE
+from utils.tree_state import get_active_tree
 from utils.vision import (
     save_session_to_state, load_sessions_from_state,
     delete_session_from_state, sessions_to_json, sessions_from_json
@@ -20,7 +21,6 @@ def parse_date_from_filename(filename: str):
 
 
 def session_to_counts(session: dict) -> dict:
-    """Convert a saved session's emotions list back into a counts dict keyed by (core, sub, leaf)."""
     counts = {}
     for e in session.get("emotions", []):
         key = (e.get("core"), e.get("sub"), e.get("sub_sub"))
@@ -29,7 +29,26 @@ def session_to_counts(session: dict) -> dict:
 
 
 def show():
-    st.markdown('<h2 style="margin-bottom:4px"> Annotate</h2>', unsafe_allow_html=True)
+    inject_css()
+
+    # sticky left column CSS
+    st.markdown("""
+    <style>
+    div[data-testid="column"]:first-child {
+        position: sticky;
+        top: 3rem;
+        height: calc(100vh - 4rem);
+        overflow-y: auto;
+        align-self: flex-start;
+    }
+    div[data-testid="column"]:last-child {
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<h2 style="margin-bottom:4px">Annotate</h2>', unsafe_allow_html=True)
 
     # ── Step 1: Load save file ───────────────────────────────────────────────
     st.markdown("**Step 1 — Load your previous data** *(skip if starting fresh)*")
@@ -44,13 +63,13 @@ def show():
             data = json.load(uploaded_save)
             sessions = sessions_from_json(data)
             st.session_state["sessions"] = {s["date"]: s for s in sessions}
-            st.success(f"✅ {len(sessions)} sessions loaded — scroll down to see them.")
+            st.success(f"{len(sessions)} sessions loaded.")
         except Exception as e:
             st.error(f"Could not read file: {e}")
 
     st.divider()
 
-    # ── Step 2: Annotate new session ─────────────────────────────────────────
+    # ── Step 2: Annotate ─────────────────────────────────────────────────────
     st.markdown("**Step 2 — Annotate a new session**")
     uploaded_file = st.file_uploader(
         "Upload wheel image",
@@ -69,14 +88,14 @@ def show():
             st.image(uploaded_file, use_container_width=True)
             if date_str:
                 verified = st.text_input(
-                    "📅 Session date",
+                    "Session date",
                     value=date_str,
                     help="Auto-detected from filename. Edit if needed (YYYY-MM-DD)."
                 )
                 date_str = verified.strip() or date_str
                 try:
                     dt = datetime.strptime(date_str, "%Y-%m-%d")
-                    st.caption(f"✅ {dt.strftime('%d %B %Y')}")
+                    st.caption(f"{dt.strftime('%d %B %Y')}")
                 except ValueError:
                     st.error("Use format YYYY-MM-DD")
                     return
@@ -86,23 +105,22 @@ def show():
                 if not date_str:
                     return
 
-            # check if session already exists and pre-fill
             existing_sessions = st.session_state.get("sessions", {})
             existing_counts = {}
             if date_str in existing_sessions:
                 existing_counts = session_to_counts(existing_sessions[date_str])
-                st.info(f"📋 Loaded existing annotation for {date_str} — counters pre-filled. Edit and save to update.")
+                st.info(f"Existing annotation loaded for {date_str} — counters pre-filled.")
 
         with col_form:
             st.markdown("#### Mark the dots")
             st.caption("Open each emotion group, enter the count for emotions that have stickers.")
 
             counts = {}
+            tree = get_active_tree()
 
-            for core, core_data in EMOTION_TREE.items():
-                with st.expander(f"● {core}", expanded=False):
+            for core, core_data in tree.items():
+                with st.expander(f"· {core}", expanded=False):
 
-                    # ── Root level: dot directly on the core emotion ─────────
                     root_key = (core, None, None)
                     root_default = existing_counts.get(root_key, 0)
                     rc = st.number_input(
@@ -116,7 +134,6 @@ def show():
 
                     st.divider()
 
-                    # ── Sub emotions ─────────────────────────────────────────
                     for sub, leaves in core_data["subs"].items():
                         st.markdown(f"**{sub}**")
 
@@ -152,7 +169,7 @@ def show():
             total = sum(counts.values())
             st.markdown(f"**Total dots marked: `{total}`**")
 
-            if st.button("💾 Save session", type="primary", use_container_width=True):
+            if st.button("Save session", type="primary", use_container_width=True):
                 if total == 0:
                     st.warning("No dots marked yet!")
                 else:
@@ -162,7 +179,7 @@ def show():
                     ]
                     session = {"date": date_str, "total_dots": total, "emotions": emotions}
                     save_session_to_state(session)
-                    st.success(f"✅ Saved — {total} dots for {date_str}")
+                    st.success(f"Saved — {total} dots for {date_str}")
                     st.balloons()
 
     # ── Step 3: Export ───────────────────────────────────────────────────────
@@ -178,7 +195,7 @@ def show():
         st.markdown(f"**Step 3 — Export your data** ({len(sessions)} sessions saved)")
     with col_export:
         st.download_button(
-            label="⬇️ Export save file",
+            label="Export save file",
             data=sessions_to_json(sessions),
             file_name="feelmap_sessions.json",
             mime="application/json",
@@ -187,13 +204,13 @@ def show():
             help="Keep this file on your desktop and upload it next time to continue."
         )
 
-    st.caption("⚠️ Always export before closing the app — your data is not saved automatically.")
+    st.caption("Always export before closing the app — your data is not saved automatically.")
 
     st.divider()
     st.markdown(f"#### Sessions ({len(sessions)})")
     for s in sessions:
-        with st.expander(f"📅 {s['date']} — {s.get('total_dots', '?')} dots"):
+        with st.expander(f"{s['date']} — {s.get('total_dots', '?')} dots"):
             st.json(s, expanded=False)
-            if st.button("🗑 Delete", key=f"del_{s['date']}"):
+            if st.button("Delete", key=f"del_{s['date']}"):
                 delete_session_from_state(s["date"])
                 st.rerun()
