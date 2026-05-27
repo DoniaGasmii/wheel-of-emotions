@@ -1,4 +1,5 @@
 import streamlit as st
+from .home import inject_css
 import plotly.graph_objects as go
 import json
 from utils.tree_state import get_active_tree, get_core_colors
@@ -64,13 +65,14 @@ def week_over_week_shifts(sessions):
 
 
 def show():
-    st.markdown('<h2 style="margin-bottom:4px">🔍 Analyse</h2>', unsafe_allow_html=True)
+    inject_css()
+    st.markdown('<h2 style="margin-bottom:4px">Analyse</h2>', unsafe_allow_html=True)
     st.caption("Deeper insights into emotion patterns across the semester.")
 
     tree = get_active_tree()
     colors = get_core_colors(tree)
 
-    # ── Load data ────────────────────────────────────────────────────────────
+    #  Load data 
     uploaded = st.file_uploader("Upload feelmap_sessions.json", type=["json"],
                                 label_visibility="collapsed")
     sessions = []
@@ -78,7 +80,7 @@ def show():
         try:
             data = json.load(uploaded)
             sessions = sessions_from_json(data)
-            st.success(f"✅ {len(sessions)} sessions loaded")
+            st.success(f" {len(sessions)} sessions loaded")
         except Exception as e:
             st.error(f"Could not read file: {e}")
             return
@@ -96,8 +98,8 @@ def show():
     all_emotions = get_all_emotions(tree)
     n_sessions = len(sessions)
 
-    # ── Insight 1: Never chosen emotions ─────────────────────────────────────
-    st.markdown("### 🚫 Emotions never chosen")
+    #  Insight 1: Never chosen emotions 
+    st.markdown("### Emotions never chosen")
     st.caption("These emotions appeared zero times across all sessions — candidates for removal from the wheel.")
 
     never = []
@@ -119,7 +121,7 @@ def show():
         for i, (core, emotions) in enumerate(by_core.items()):
             with cols[i % len(cols)]:
                 color = colors.get(core, "#888")
-                st.markdown(f"<span style='color:{color}'>●</span> **{core}**",
+                st.markdown(f"<span style='color:{color}'></span> **{core}**",
                            unsafe_allow_html=True)
                 for em in emotions:
                     st.markdown(f"&nbsp;&nbsp;&nbsp;· {em}", unsafe_allow_html=True)
@@ -128,8 +130,8 @@ def show():
 
     st.divider()
 
-    # ── Insight 2: Rarely chosen ─────────────────────────────────────────────
-    st.markdown("### 📉 Rarely chosen emotions")
+    #  Insight 2: Rarely chosen 
+    st.markdown("### Rarely chosen emotions")
     st.caption(f"Emotions chosen in only 1 out of {n_sessions} sessions.")
 
     rare_threshold = max(1, n_sessions // 4)
@@ -149,15 +151,15 @@ def show():
         for r in rare_sorted[:15]:
             color = colors.get(r["Core"], "#888")
             st.markdown(
-                f"<span style='color:{color}'>●</span> **{r['Emotion']}** — chosen {r['Sessions']} sessions",
+                f"<span style='color:{color}'></span> **{r['Emotion']}** — chosen {r['Sessions']} sessions",
                 unsafe_allow_html=True)
     else:
         st.info("No rarely chosen emotions found.")
 
     st.divider()
 
-    # ── Insight 3: Most dominant emotions ────────────────────────────────────
-    st.markdown("### 🏆 Most dominant emotions")
+    #  Insight 3: Most dominant emotions 
+    st.markdown("### Most dominant emotions")
     st.caption("Emotions with the highest total dot count across the semester.")
 
     dominance = []
@@ -178,18 +180,18 @@ def show():
             hovertemplate="<b>%{x}</b>: %{y} dots total<extra></extra>"
         ))
         fig.update_layout(
-            paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
-            font=dict(color="white"),
-            xaxis=dict(gridcolor="#1e1e2e", color="#aaa", tickangle=-30),
-            yaxis=dict(gridcolor="#1e1e2e", color="#aaa", title="Total dots"),
+            paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0",
+            font=dict(color="#2d2420"),
+            xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", tickangle=-30),
+            yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Total dots"),
             height=380, margin=dict(t=20, b=80),
         )
         st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
 
-    # ── Insight 4: Week-over-week biggest shifts ──────────────────────────────
-    st.markdown("### 📈 Biggest week-over-week shifts")
+    #  Insight 4: Week-over-week biggest shifts 
+    st.markdown("### Biggest week-over-week shifts")
     st.caption("Emotions that changed the most between consecutive sessions.")
 
     shifts = week_over_week_shifts(sessions)
@@ -197,17 +199,17 @@ def show():
         top_shifts = shifts[:12]
         for sh in top_shifts:
             color = colors.get(sh["core"], "#888")
-            arrow = "⬆️" if sh["delta"] > 0 else "⬇️"
+            arrow = "" if sh["delta"] > 0 else ""
             st.markdown(
-                f"<span style='color:{color}'>●</span> **{sh['emotion']}** {arrow} "
+                f"<span style='color:{color}'></span> **{sh['emotion']}** {arrow} "
                 f"`{'+' if sh['delta']>0 else ''}{sh['delta']}` dots &nbsp; "
                 f"<span style='color:#555'>{sh['from']} → {sh['to']}</span>",
                 unsafe_allow_html=True)
 
     st.divider()
 
-    # ── Insight 5: Emotional balance per session ──────────────────────────────
-    st.markdown("### ⚖️ Positive vs challenging ratio")
+    #  Insight 5: Emotional balance per session 
+    st.markdown("### Positive vs challenging ratio")
     st.caption("How the emotional balance shifted each week.")
 
     POSITIVE = {"Happy", "Surprised"}
@@ -229,19 +231,19 @@ def show():
                          hovertemplate="%{y}% challenging<extra></extra>"))
     fig2.update_layout(
         barmode="stack",
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
-        font=dict(color="white"),
-        xaxis=dict(gridcolor="#1e1e2e", color="#aaa"),
-        yaxis=dict(gridcolor="#1e1e2e", color="#aaa", title="%", range=[0, 100]),
-        legend=dict(bgcolor="#0d1117", bordercolor="#333", borderwidth=1),
+        paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0",
+        font=dict(color="#2d2420"),
+        xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="%", range=[0, 100]),
+        legend=dict(bgcolor="#fdf6f0", bordercolor="#e8d5c4", borderwidth=1),
         height=350, margin=dict(t=20, b=40),
     )
     st.plotly_chart(fig2, use_container_width=True)
 
     st.divider()
 
-    # ── Insight 6: Consistency — emotions present every week ─────────────────
-    st.markdown("### 🔁 Always present")
+    #  Insight 6: Consistency — emotions present every week 
+    st.markdown("### Always present")
     st.caption("Emotions chosen every single session — the constants of the semester.")
 
     always = []
@@ -252,7 +254,104 @@ def show():
     if always:
         for label, core in always:
             color = colors.get(core, "#888")
-            st.markdown(f"<span style='color:{color}'>●</span> **{label}**",
+            st.markdown(f"<span style='color:{color}'></span> **{label}**",
                        unsafe_allow_html=True)
     else:
         st.info("No emotion was chosen every single session.")
+
+    # ── Insight 7: Attendance ─────────────────────────────────────────────────
+    st.markdown("### Attendance (total dots per session)")
+    st.caption("Each dot = one sticker placed. Drops likely reflect absences.")
+
+    dates = [s["date"] for s in sessions]
+    totals = [s.get("total_dots", 0) for s in sessions]
+    avg = sum(totals) / len(totals)
+
+    fig3 = go.Figure()
+    fig3.add_trace(go.Bar(
+        x=dates, y=totals,
+        marker_color=["#e8875a" if t >= avg else "#9b6bb5" for t in totals],
+        hovertemplate="%{y} dots<extra></extra>"
+    ))
+    fig3.add_hline(y=avg, line_dash="dash", line_color="#b08070",
+                  annotation_text=f"avg {avg:.0f}", annotation_position="top right")
+    fig3.update_layout(
+        paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
+        xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Total dots"),
+        height=320, margin=dict(t=20, b=40),
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+
+    st.divider()
+
+    # ── Insight 8: Emotions that appeared only once ───────────────────────────
+    st.markdown("### Appeared only once")
+    st.caption("Emotions chosen in exactly one session across the whole semester — one-offs.")
+
+    once = []
+    for core, sub, sub_sub in all_emotions:
+        if count_emotion_appearances(sessions, core, sub, sub_sub) == 1:
+            # find which session
+            for s in sessions:
+                for e in s.get("emotions", []):
+                    if (e.get("core") == core and e.get("sub") == sub
+                            and e.get("sub_sub") == sub_sub and e.get("count", 0) > 0):
+                        once.append({
+                            "emotion": get_label(core, sub, sub_sub),
+                            "core": core,
+                            "date": s["date"]
+                        })
+                        break
+
+    if once:
+        by_date = {}
+        for o in once:
+            by_date.setdefault(o["date"], []).append((o["emotion"], o["core"]))
+        for date, emotions in sorted(by_date.items()):
+            st.markdown(f"**{date}**")
+            for emotion, core in emotions:
+                color = colors.get(core, "#888")
+                st.markdown(f"&nbsp;&nbsp;&nbsp;<span style='color:{color}'>·</span> {emotion}",
+                           unsafe_allow_html=True)
+    else:
+        st.info("No emotions appeared exactly once.")
+
+    st.divider()
+
+    # ── Insight 9: Co-occurring emotions ─────────────────────────────────────
+    st.markdown("### Emotions that always appear together")
+    st.caption("Pairs of emotions that showed up in the same session more than once — recurring combinations.")
+
+    from itertools import combinations
+
+    # build per-session sets of emotions present
+    session_sets = []
+    for s in sessions:
+        present = set()
+        for e in s.get("emotions", []):
+            if e.get("count", 0) > 0:
+                present.add(get_label(e.get("core"), e.get("sub"), e.get("sub_sub")))
+        session_sets.append(present)
+
+    # count co-occurrences for all pairs
+    pair_counts = {}
+    for sset in session_sets:
+        for a, b in combinations(sorted(sset), 2):
+            pair = (a, b)
+            pair_counts[pair] = pair_counts.get(pair, 0) + 1
+
+    # show pairs that co-occurred in 3+ sessions
+    threshold = max(2, n_sessions // 3)
+    strong_pairs = sorted(
+        [(p, c) for p, c in pair_counts.items() if c >= threshold],
+        key=lambda x: -x[1]
+    )
+
+    if strong_pairs:
+        for (a, b), count in strong_pairs[:15]:
+            st.markdown(
+                f"**{a}** + **{b}** &nbsp; — &nbsp; together in {count}/{n_sessions} sessions",
+                unsafe_allow_html=True)
+    else:
+        st.info("No strong co-occurrences found with current threshold.")

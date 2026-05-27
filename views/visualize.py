@@ -1,5 +1,5 @@
 import streamlit as st
-from views.home import inject_css
+from .home import inject_css
 import plotly.graph_objects as go
 import json
 import io
@@ -253,27 +253,34 @@ def make_radar(sessions):
 
 def make_posneg(sessions):
     dates = [s["date"] for s in sessions]
-    pos, neg = [], []
+    pos_pct, neg_pct, attendance = [], [], []
     for s in sessions:
         totals = get_core_totals(s)
-        pos.append(sum(totals.get(c, 0) for c in POSITIVE))
-        neg.append(sum(totals.get(c, 0) for c in NEGATIVE))
+        total = s.get("total_dots", 1) or 1
+        pos = sum(totals.get(c, 0) for c in POSITIVE)
+        neg = sum(totals.get(c, 0) for c in NEGATIVE)
+        pos_pct.append(round(pos / total * 100, 1))
+        neg_pct.append(round(neg / total * 100, 1))
+        attendance.append(total)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=dates, y=pos, name="Positive", mode="lines+markers",
-        line=dict(color="#e8875a", width=3), marker=dict(size=10)))
-    fig.add_trace(go.Scatter(x=dates, y=neg, name="Challenging", mode="lines+markers",
-        line=dict(color="#9b6bb5", width=3), marker=dict(size=10)))
-    # fill between
-    fig.add_trace(go.Scatter(x=dates+dates[::-1], y=pos+neg[::-1],
-        fill="toself", fillcolor="rgba(232,135,90,0.08)",
-        line=dict(color="rgba(0,0,0,0)"), showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=dates, y=pos_pct, name="Positive %", mode="lines+markers",
+        line=dict(color="#e8875a", width=3), marker=dict(size=10),
+        hovertemplate="%{y}%<extra>Positive</extra>"))
+    fig.add_trace(go.Scatter(x=dates, y=neg_pct, name="Challenging %", mode="lines+markers",
+        line=dict(color="#9b6bb5", width=3), marker=dict(size=10),
+        hovertemplate="%{y}%<extra>Challenging</extra>"))
+    fig.add_trace(go.Bar(x=dates, y=attendance, name="Total dots (attendance)",
+        marker_color="rgba(180,160,140,0.25)", yaxis="y2",
+        hovertemplate="%{y} dots<extra>Attendance</extra>"))
     fig.update_layout(
         paper_bgcolor="#fdf6f0", plot_bgcolor="#fdf6f0", font=dict(color="#2d2420"),
         xaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a"),
-        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="Dot count"),
+        yaxis=dict(gridcolor="#e8d5c4", color="#7a5c4a", title="% of dots", range=[0, 100]),
+        yaxis2=dict(overlaying="y", side="right", color="#b0a090",
+                   title="Total dots", showgrid=False),
         legend=dict(bgcolor="#fdf6f0", bordercolor="#e8d5c4", borderwidth=1),
-        height=400, margin=dict(t=30, b=40),
-        title=dict(text="Positive vs challenging emotions", font=dict(size=14, color="#2d2420"), x=0.5)
+        height=420, margin=dict(t=30, b=40),
+        title=dict(text="Positive vs challenging (% of session dots)", font=dict(size=14, color="#2d2420"), x=0.5)
     )
     return fig
 
