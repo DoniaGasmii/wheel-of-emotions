@@ -30,24 +30,6 @@ def session_to_counts(session: dict) -> dict:
 
 def show():
     inject_css()
-
-    # sticky left column CSS
-    st.markdown("""
-    <style>
-    div[data-testid="column"]:first-child {
-        position: sticky;
-        top: 3rem;
-        height: calc(100vh - 4rem);
-        overflow-y: auto;
-        align-self: flex-start;
-    }
-    div[data-testid="column"]:last-child {
-        max-height: calc(100vh - 4rem);
-        overflow-y: auto;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.markdown('<h2 style="margin-bottom:4px">Annotate</h2>', unsafe_allow_html=True)
 
     # ── Step 1: Load save file ───────────────────────────────────────────────
@@ -118,53 +100,57 @@ def show():
             counts = {}
             tree = get_active_tree()
 
-            for core, core_data in tree.items():
-                with st.expander(f"· {core}", expanded=False):
+            # fixed-height scrollable box — image stays visible on left
+            scroll_box = st.container(height=620, border=False)
 
-                    root_key = (core, None, None)
-                    root_default = existing_counts.get(root_key, 0)
-                    rc = st.number_input(
-                        f"On '{core}' directly",
-                        min_value=0, max_value=10,
-                        value=root_default, step=1,
-                        key=f"n_{core}_root"
-                    )
-                    if rc > 0:
-                        counts[root_key] = rc
+            with scroll_box:
+                for core, core_data in tree.items():
+                    with st.expander(f"· {core}", expanded=False):
 
-                    st.divider()
-
-                    for sub, leaves in core_data["subs"].items():
-                        st.markdown(f"**{sub}**")
-
-                        sub_key = (core, sub, None)
-                        sub_default = existing_counts.get(sub_key, 0)
-                        c = st.number_input(
-                            f"On '{sub}' directly",
+                        root_key = (core, None, None)
+                        root_default = existing_counts.get(root_key, 0)
+                        rc = st.number_input(
+                            f"On '{core}' directly",
                             min_value=0, max_value=10,
-                            value=sub_default, step=1,
-                            key=f"n_{core}_{sub}_direct",
-                            label_visibility="collapsed"
+                            value=root_default, step=1,
+                            key=f"n_{core}_root"
                         )
-                        if c > 0:
-                            counts[sub_key] = c
-
-                        if leaves:
-                            leaf_cols = st.columns(len(leaves))
-                            for i, leaf in enumerate(leaves):
-                                with leaf_cols[i]:
-                                    leaf_key = (core, sub, leaf)
-                                    leaf_default = existing_counts.get(leaf_key, 0)
-                                    lc = st.number_input(
-                                        leaf,
-                                        min_value=0, max_value=10,
-                                        value=leaf_default, step=1,
-                                        key=f"n_{core}_{sub}_{leaf}"
-                                    )
-                                    if lc > 0:
-                                        counts[leaf_key] = lc
+                        if rc > 0:
+                            counts[root_key] = rc
 
                         st.divider()
+
+                        for sub, leaves in core_data["subs"].items():
+                            st.markdown(f"**{sub}**")
+
+                            sub_key = (core, sub, None)
+                            sub_default = existing_counts.get(sub_key, 0)
+                            c = st.number_input(
+                                f"On '{sub}' directly",
+                                min_value=0, max_value=10,
+                                value=sub_default, step=1,
+                                key=f"n_{core}_{sub}_direct",
+                                label_visibility="collapsed"
+                            )
+                            if c > 0:
+                                counts[sub_key] = c
+
+                            if leaves:
+                                leaf_cols = st.columns(len(leaves))
+                                for i, leaf in enumerate(leaves):
+                                    with leaf_cols[i]:
+                                        leaf_key = (core, sub, leaf)
+                                        leaf_default = existing_counts.get(leaf_key, 0)
+                                        lc = st.number_input(
+                                            leaf,
+                                            min_value=0, max_value=10,
+                                            value=leaf_default, step=1,
+                                            key=f"n_{core}_{sub}_{leaf}"
+                                        )
+                                        if lc > 0:
+                                            counts[leaf_key] = lc
+
+                            st.divider()
 
             total = sum(counts.values())
             st.markdown(f"**Total dots marked: `{total}`**")
