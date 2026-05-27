@@ -15,7 +15,7 @@ Just a browser — visit the hosted app at:
 
 Or run locally:
 ```bash
-git clone https://github.com/yourname/feelmap.git
+git clone https://github.com/DoniaGasmii/wheel-of-emotions.git
 cd feelmap
 pip install -r requirements.txt
 python -m streamlit run app.py
