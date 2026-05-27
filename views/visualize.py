@@ -370,21 +370,37 @@ def parse_date_from_name(name):
     return name
 
 def make_photo_gif(uploaded_files, duration_ms=1200) -> bytes:
+    from PIL import Image, ImageDraw
+    from datetime import datetime
+
+    def fmt_date(name):
+        for fmt in ("%d_%m_%Y", "%d.%m.%Y", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(name, fmt)
+                return dt.strftime("%d %B %Y")
+            except ValueError:
+                continue
+        return name
+
     frames = []
     file_list = sorted(uploaded_files, key=lambda f: parse_date_from_name(f.name.rsplit(".", 1)[0]))
-    for f in file_list:
+    total = len(file_list)
+    for idx, f in enumerate(file_list):
         img = Image.open(f).convert("RGB")
         img = img.resize((800, 800), Image.LANCZOS)
-        # add date label
-        from PIL import ImageDraw, ImageFont
         draw = ImageDraw.Draw(img)
-        date_label = parse_date_from_name(f.name.rsplit(".", 1)[0])
-        draw.rectangle([0, 0, 800, 40], fill=(13, 17, 23))
-        draw.text((10, 8), date_label, fill=(220, 220, 220))
+        name = f.name.rsplit(".", 1)[0]
+        label = f"Session {idx+1}/{total}  ·  {fmt_date(name)}"
+        # dark banner at top
+        draw.rectangle([0, 0, 800, 48], fill=(13, 17, 23))
+        draw.text((12, 12), label, fill=(220, 220, 220))
         frames.append(img)
+
     buf = io.BytesIO()
+    durations = [duration_ms] * len(frames)
+    durations[-1] = duration_ms * 3
     frames[0].save(buf, format="GIF", save_all=True,
-                  append_images=frames[1:], duration=duration_ms, loop=0)
+                  append_images=frames[1:], duration=durations, loop=0)
     buf.seek(0)
     return buf.read()
 
