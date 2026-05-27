@@ -23,6 +23,17 @@ CORE_ANGLES_DEG = {
     "Sad":       145,
 }
 
+
+def format_date(date_str: str, idx: int, total: int) -> str:
+    """Convert 2026-04-22 to 'Session 1/7  ·  22 April 2026'"""
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        label = dt.strftime("%d %B %Y").lstrip("0")
+    except Exception:
+        label = date_str
+    return f"Session {idx + 1}/{total}  ·  {label}"
+
 BG = "#fdf6f0"
 GRID = "#e8d5c4"
 
@@ -99,7 +110,7 @@ def _fig_to_pil(plt, Image, fig):
     return Image.open(buf).copy()
 
 
-def render_polar_frame(session, figsize=(8, 8)):
+def render_polar_frame(session, figsize=(8, 8), idx=0, total=1):
     plt, mpatches, Image = _get_mpl()
     fig = plt.figure(figsize=figsize, facecolor=BG)
     ax = _base_ax(plt, fig)
@@ -113,14 +124,15 @@ def render_polar_frame(session, figsize=(8, 8)):
                if get_core_totals(session).get(k, 0) > 0]
     ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, -0.08),
              ncol=4, framealpha=0, labelcolor="#2d2420", fontsize=9)
-    fig.suptitle(f"Session — {session['date']}",
+    fig.suptitle(format_date(session["date"], idx, total),
                 color="#2d2420", fontsize=13, y=0.97)
     return _fig_to_pil(plt, Image, fig)
 
 
 def make_gif_timelapse(sessions, duration_ms=1200):
     plt, mpatches, Image = _get_mpl()
-    frames = [render_polar_frame(s) for s in sessions]
+    total = len(sessions)
+    frames = [render_polar_frame(s, idx=i, total=total) for i, s in enumerate(sessions)]
     durations = [duration_ms] * len(frames)
     durations[-1] = duration_ms * 3
     buf = io.BytesIO()
@@ -134,7 +146,7 @@ def make_gif(sessions, duration_ms=1200):
     return make_gif_timelapse(sessions, duration_ms)
 
 
-def _render_sticker_frame(session_date, placed, active_idx, figsize=(8, 8)):
+def _render_sticker_frame(session_date, placed, active_idx, idx=0, total=1, figsize=(8, 8)):
     plt, mpatches, Image = _get_mpl()
     fig = plt.figure(figsize=figsize, facecolor=BG)
     ax = _base_ax(plt, fig)
@@ -152,11 +164,11 @@ def _render_sticker_frame(session_date, placed, active_idx, figsize=(8, 8)):
         else:
             ax.scatter(angle, radius, s=size, color=color, alpha=0.3,
                       zorder=5, edgecolors="white", linewidths=0.5)
-    fig.suptitle(session_date, color="#2d2420", fontsize=15, fontweight="bold", y=0.97)
+    fig.suptitle(format_date(session_date, idx, total), color="#2d2420", fontsize=15, fontweight="bold", y=0.97)
     return _fig_to_pil(plt, Image, fig)
 
 
-def _render_week_final(session_date, placed, figsize=(8, 8)):
+def _render_week_final(session_date, placed, idx=0, total=1, figsize=(8, 8)):
     plt, mpatches, Image = _get_mpl()
     fig = plt.figure(figsize=figsize, facecolor=BG)
     ax = _base_ax(plt, fig)
@@ -168,14 +180,15 @@ def _render_week_final(session_date, placed, figsize=(8, 8)):
                if any(pc == c for _, _, pc, _, _ in placed)]
     ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, -0.08),
              ncol=4, framealpha=0, labelcolor="#2d2420", fontsize=9)
-    fig.suptitle(session_date, color="#2d2420", fontsize=15, fontweight="bold", y=0.97)
+    fig.suptitle(format_date(session_date, idx, total), color="#2d2420", fontsize=15, fontweight="bold", y=0.97)
     return _fig_to_pil(plt, Image, fig)
 
 
 def make_gif_sticker(sessions, frame_ms=400, pause_ms=1800):
     frames = []
     durations = []
-    for session in sessions:
+    total = len(sessions)
+    for si, session in enumerate(sessions):
         emotions = session.get("emotions", [])
         date = session.get("date", "")
         placed = []
@@ -188,10 +201,10 @@ def make_gif_sticker(sessions, frame_ms=400, pause_ms=1800):
                     placed[ei] = entry
                 else:
                     placed.append(entry)
-                frame = _render_sticker_frame(date, placed, ei)
+                frame = _render_sticker_frame(date, placed, ei, idx=si, total=total)
                 frames.append(frame)
                 durations.append(frame_ms)
-        final = _render_week_final(date, placed)
+        final = _render_week_final(date, placed, idx=si, total=total)
         frames.append(final)
         durations.append(pause_ms)
     buf = io.BytesIO()
